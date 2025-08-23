@@ -5,6 +5,7 @@ import json
 import time
 
 from src.board import ChessBoard
+from src.game import Game 
 
 # --- КОНФИГУРАЦИЯ ---
 LOCALES_DIR = 'locales' # Папка с файлами переводов
@@ -95,8 +96,6 @@ def settings_menu():
             # 3. Запрашиваем ввод у пользователя
             lang_choice = input(T('input_prompt')).strip()
             
-            # --- КОНЕЦ ИЗМЕНЕНИЙ ---
-            
             # Логика обработки выбора остается прежней
             try:
                 chosen_index = int(lang_choice) - 1
@@ -109,31 +108,29 @@ def settings_menu():
             break
 
 def play_human_vs_human():
-    """Запускает игровой цикл для двух игроков."""
-    board = ChessBoard()
+    game = Game()
+    
     while True:
         clear_screen()
-        print(board)
+        print(game.board) 
         
-        status = board.is_game_over()
-        if status != "ongoing":
+        if game.status != "ongoing":
             print(f"\n{T('game_over_title')}")
-            if status == "checkmate":
-                winner_color = "black" if board.turn == "white" else "white"
+            if game.status == "checkmate":
+                winner_color = "black" if game.board.turn == "white" else "white"
                 winner_name_key = 'white_player' if winner_color == 'white' else 'black_player'
-                print(T("checkmate", winner=T(winner_name_key)))
+                print(T('checkmate', winner=T(winner_name_key)))
             else:
-                 print(T("unknown_draw", status=status))
+                print(T(game.status, default=f"Ничья ({game.status})"))
             break
         
-        player_name = T('white_player') if board.turn == 'white' else T('black_player')
+        player_name = T('white_player') if game.board.turn == 'white' else T('black_player')
         move_str = input(f"\n{T('player_turn', player=player_name)}").strip().lower()
 
-        if move_str in ['exit', 'quit']:
-            break
-        if not board.make_move(move_str):
-            print(f"\n{T('illegal_move')}")
-            time.sleep(2)
+        if move_str in ['exit', 'quit']: break
+        
+        if not game.make_move(move_str):
+            print(f"\n{T('illegal_move')}"); time.sleep(2)
 
 def main_menu():
     """Отображает главное меню и обрабатывает выбор пользователя."""

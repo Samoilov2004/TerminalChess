@@ -23,7 +23,10 @@ class ChessBoard:
             ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
         ]
         self.turn = 'white'
-        self.castling_rights = [[True, True], [True, True]]
+        self.castling_rights = {
+            'white': {'kingside': True, 'queenside': True},
+            'black': {'kingside': True, 'queenside': True}
+        }
         self.en_passant_target = None
         self.halfmove_clock = 0
         self.fullmove_number = 1
@@ -68,6 +71,13 @@ class ChessBoard:
         row = 8 - int(pos_str[1])
         if 0 <= row < 8 and 0 <= col < 8: return row, col
         return None
+
+    def _to_algebraic(self, pos):
+        """Преобразует координаты (row, col) в алгебраическую нотацию 'e2'."""
+        if pos is None:
+            return None
+        row, col = pos
+        return chr(ord('a') + col) + str(8 - row)
 
     def get_piece_at(self, pos):
         row, col = pos
@@ -235,28 +245,22 @@ class ChessBoard:
                     if self.get_piece_color(self.board[nr][nc]) != color:
                         moves.append(((r, c), (nr, nc)))
         # Castling
-        if color == 'white':
-            if self.castling_rights[0][0] and self.board[7][5] == '.' and self.board[7][6] == '.' and \
-               not self._is_square_attacked((7, 4), 'black') and \
-               not self._is_square_attacked((7, 5), 'black') and \
-               not self._is_square_attacked((7, 6), 'black'):
-                moves.append(((7, 4), (7, 6)))
-            if self.castling_rights[0][1] and self.board[7][1] == '.' and self.board[7][2] == '.' and self.board[7][3] == '.' and \
-               not self._is_square_attacked((7, 4), 'black') and \
-               not self._is_square_attacked((7, 3), 'black') and \
-               not self._is_square_attacked((7, 2), 'black'):
-                moves.append(((7, 4), (7, 2)))
-        else: # black
-            if self.castling_rights[1][0] and self.board[0][5] == '.' and self.board[0][6] == '.' and \
-               not self._is_square_attacked((0, 4), 'white') and \
-               not self._is_square_attacked((0, 5), 'white') and \
-               not self._is_square_attacked((0, 6), 'white'):
-                moves.append(((0, 4), (0, 6)))
-            if self.castling_rights[1][1] and self.board[0][1] == '.' and self.board[0][2] == '.' and self.board[0][3] == '.' and \
-               not self._is_square_attacked((0, 4), 'white') and \
-               not self._is_square_attacked((0, 3), 'white') and \
-               not self._is_square_attacked((0, 2), 'white'):
-                moves.append(((0, 4), (0, 2)))
+        opponent = 'black' if color == 'white' else 'white'
+        if not self.is_in_check(color):
+            # Короткая рокировка (kingside)
+            if self.castling_rights[color]['kingside']:
+                if self.board[r][c+1] == '.' and self.board[r][c+2] == '.' and \
+                   not self._is_square_attacked((r, c), opponent) and \
+                   not self._is_square_attacked((r, c+1), opponent) and \
+                   not self._is_square_attacked((r, c+2), opponent):
+                    moves.append(((r, c), (r, c+2)))
+            # Длинная рокировка (queenside)
+            if self.castling_rights[color]['queenside']:
+                if self.board[r][c-1] == '.' and self.board[r][c-2] == '.' and self.board[r][c-3] == '.' and \
+                   not self._is_square_attacked((r, c), opponent) and \
+                   not self._is_square_attacked((r, c-1), opponent) and \
+                   not self._is_square_attacked((r, c-2), opponent):
+                    moves.append(((r, c), (r, c-2)))
         return moves
 
     def _get_sliding_moves(self, pos, directions):
@@ -335,12 +339,15 @@ class ChessBoard:
         if piece.lower() == 'p' and (to_r == 0 or to_r == 7):
             promo = promotion_piece if promotion_piece and promotion_piece.lower() in 'qrbn' else 'q'
             self.board[to_r][to_c] = promo.upper() if self.turn == 'white' else promo.lower()
-        if piece == 'K': self.castling_rights[0] = [False, False]
-        elif piece == 'k': self.castling_rights[1] = [False, False]
-        elif piece == 'R' and from_pos == (7, 7): self.castling_rights[0][0] = False
-        elif piece == 'R' and from_pos == (7, 0): self.castling_rights[0][1] = False
-        elif piece == 'r' and from_pos == (0, 7): self.castling_rights[1][0] = False
-        elif piece == 'r' and from_pos == (0, 0): self.castling_rights[1][1] = False
+        color = self.get_piece_color(piece)
+        if piece.lower() == 'k':
+            self.castling_rights[color]['kingside'] = False
+            self.castling_rights[color]['queenside'] = False
+        elif piece.lower() == 'r':
+            if from_pos[1] == 0: # a-файл
+                self.castling_rights[color]['queenside'] = False
+            elif from_pos[1] == 7: # h-файл
+                self.castling_rights[color]['kingside'] = False
         self.turn = 'black' if self.turn == 'white' else 'white'
 
     def is_game_over(self):
@@ -364,3 +371,26 @@ class ChessBoard:
         if self.halfmove_clock >= 100:
             return "draw_50_moves"
         return "ongoing"
+
+    def get_position_hash(self):
+        """
+        Создает уникальную строку (хэш) для текущей позиции.
+        Это нужно для отслеживания троекратного повторения.
+        Хэш включает в себя положение фигур, право на ход,
+        права на рокировку и возможность взятия на проходе.
+        """
+        # Преобразуем доску в одну строку
+        board_str = "".join("".join(row) for row in self.board)
+        
+        # Собираем права на рокировку в строку
+        castling_str = ""
+        if self.castling_rights['white']['kingside']: castling_str += 'K'
+        if self.castling_rights['white']['queenside']: castling_str += 'Q'
+        if self.castling_rights['black']['kingside']: castling_str += 'k'
+        if self.castling_rights['black']['queenside']: castling_str += 'q'
+        if not castling_str: castling_str = '-'
+
+        en_passant_str = self._to_algebraic(self.en_passant_target) if self.en_passant_target else '-'
+        
+        # Собираем все в один хэш
+        return f"{board_str} {self.turn[0]} {castling_str} {en_passant_str}"
