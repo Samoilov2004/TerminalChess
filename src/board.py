@@ -34,30 +34,10 @@ class ChessBoard:
 
     def __str__(self):
         """
-        Возвращает строковое представление доски с правильным выравниванием.
+        Простое текстовое представление для отладки.
+        Не используется в основном интерфейсе.
         """
-        # Префикс 'n| ' (например, '8| ') состоит из 3 символов.
-        # Поэтому шапку мы тоже начинаем с 3 пробелов, чтобы 'a' встало над первой фигурой.
-        header =    '8 | a b c d e f g h '
-        separator = '  +-----------------+' # 2 пробела, чтобы '+' выровнялся по '|'
-
-        board_str = header + "\n" + separator + "\n"
-
-        for i, row in enumerate(self.board):
-            rank = 8 - i
-            row_content = " ".join(row)
-            # Формируем строку ряда: 8| r n b ... |8
-            board_str += f"{rank} | {row_content} | {rank}\n"
-            
-        board_str += separator + "\n" + header + "\n"
-
-        turn_color = "White" if self.turn == 'white' else "Black"
-        board_str += f"\nTurn: {self.fullmove_number}. {turn_color} to move.\n"
-
-        if self.is_in_check(self.turn):
-            board_str += "CHECK!\n"
-
-        return board_str
+        return "\n".join(" ".join(row) for row in self.board)
 
     def get_piece_color(self, piece):
         """Возвращает цвет фигуры ('white' или 'black') или None."""

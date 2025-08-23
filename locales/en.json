@@ -17,7 +17,7 @@
     "back_to_menu": "\nPress Enter to return to main menu...",
     "settings_title": "============ SETTINGS ============",
     "settings_lang": "1. Language (Current: {lang_name})",
-    "settings_back": "2. Back to menu",
+    "settings_back": "5. Back to menu",
     "lang_choice_prompt": "Choose language: ",
     "game_over_title": "================== GAME OVER ==================",
     "checkmate": "Result: Checkmate! {winner} wins.",
@@ -42,6 +42,10 @@
     "choose_skill_level": "Select AI difficulty (0-20, default 5): ",
     "ai_thinking": "AI thinking...",
     "ai_makes_move": "AI makes move",
-    "ai_error": "AI failed to make a move. Game aborted."
+    "ai_error": "AI failed to make a move. Game aborted.",
+    "settings_piece_style": "5. Piece Style (Current: {style})",
+    "style_classic": "Classic",
+    "style_unicode": "Unicode",
+    "settings_back": "6. Back to menu"
 }
 

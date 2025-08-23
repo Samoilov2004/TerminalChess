@@ -14,7 +14,21 @@ settings = {
     'lang': 'ru',
     'confirm_move': False,
     'flip_board': False,
-    'auto_queen': False
+    'auto_queen': False,
+    'piece_style': 'unicode'
+}
+
+PIECE_SETS = {
+    'classic': {
+        'R': 'R', 'N': 'N', 'B': 'B', 'Q': 'Q', 'K': 'K', 'P': 'P',
+        'r': 'r', 'n': 'n', 'b': 'b', 'q': 'q', 'k': 'k', 'p': 'p',
+        '.': '.'
+    },
+    'unicode': {
+        'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙',
+        'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
+        '.': '·'
+    }
 }
 
 loaded_texts = {}
@@ -71,6 +85,61 @@ def show_dev_notice():
     print(f"\n{T('dev_notice')}")
     time.sleep(2)
 
+def draw_board(board_obj, flip=False):
+    """
+    Рисует доску, используя выбранный в настройках стиль фигур.
+    Корректно обрабатывает переворот доски.
+    """
+    # Получаем актуальный набор символов для фигур
+    piece_set = PIECE_SETS.get(settings['piece_style'], PIECE_SETS['classic'])
+    
+    # --- 1. Определяем порядок, в котором мы будем перебирать ИНДЕКСЫ доски ---
+    # Индексы в Python-списке всегда идут от 0 до 7 (сверху вниз)
+    rank_indices = range(8) if not flip else range(7, -1, -1)
+    
+    # --- 2. Определяем, как будут выглядеть надписи ---
+    files = "a b c d e f g h"
+    if flip:
+        # Если доска перевернута, буквы тоже должны идти в обратном порядке
+        files = "h g f e d c b a"
+
+    # --- 3. Рисуем "шапку" доски ---
+    header = f'   {files}'
+    separator = '  +-----------------+'
+    board_str = header + "\n" + separator + "\n"
+
+    # --- 4. Рисуем саму доску, ряд за рядом ---
+    for r_idx in rank_indices:
+        # r_idx - это индекс в self.board.board (от 0 до 7)
+        # rank_num - это номер, который мы печатаем сбоку (от 1 до 8)
+        rank_num = 8 - r_idx
+
+        # Получаем сам ряд данных
+        row_list = board_obj.board[r_idx]
+        
+        # Если доска перевернута, переворачиваем и сам ряд (h-файл становится первым)
+        if flip:
+            row_list = row_list[::-1]
+            
+        # Заменяем буквы на символы из выбранного "скина"
+        display_row = [piece_set[p] for p in row_list]
+        
+        # Собираем все в одну строку
+        board_str += f"{rank_num} | {' '.join(display_row)} | {rank_num}\n"
+    
+    # --- 5. Рисуем "подвал" и информацию об игре ---
+    board_str += separator + "\n" + header + "\n"
+    
+    turn_color = "White" if board_obj.turn == 'white' else "Black"
+    turn_num = board_obj.fullmove_number
+    # Используем ключи локализации
+    board_str += f"\n{T('turn_info', turn_num=turn_num, color=T(board_obj.turn + '_player'))}\n"
+
+    if board_obj.is_in_check(board_obj.turn):
+        board_str += f"{T('check_status')}\n"
+
+    print(board_str)
+
 def settings_menu():
     """Меню для изменения всех настроек."""
     while True:
@@ -81,12 +150,14 @@ def settings_menu():
         confirm_status = T("status_on") if settings['confirm_move'] else T("status_off")
         flip_status = T("status_on") if settings['flip_board'] else T("status_off")
         auto_queen_status = T("status_on") if settings['auto_queen'] else T("status_off")
+        style_name = T(f"style_{settings['piece_style']}")
 
         print(T("settings_title"))
         print(T("settings_lang", lang_name=lang_name))
         print(T("settings_confirm_move", status=confirm_status)) # Убедитесь, что этот ключ есть в JSON
         print(T("settings_flip_board", status=flip_status))
         print(T("settings_auto_queen", status=auto_queen_status))
+        print(T("settings_piece_style", style=style_name))
         print(T("settings_back")) # Этот ключ должен содержать верный номер
         print("===================================")
         
@@ -122,7 +193,12 @@ def settings_menu():
             settings['flip_board'] = not settings['flip_board']
         elif choice == '4': # Авто-королева
             settings['auto_queen'] = not settings['auto_queen']
-        elif choice == '5': # Назад
+        if choice == '5': # Стиль фигур
+            if settings['piece_style'] == 'classic':
+                settings['piece_style'] = 'unicode'
+            else:
+                settings['piece_style'] = 'classic'
+        elif choice == '6': # Назад
             break
 
 def play_human_vs_human():
@@ -130,7 +206,7 @@ def play_human_vs_human():
     while True:
         clear_screen()
         should_flip = game.board.turn == 'black' and settings['flip_board']
-        print(game.board.get_board_string(flip=should_flip))
+        draw_board(game.board, flip=(game.board.turn == 'black' and settings['flip_board']))
                 
         player_name = T('white_player') if game.board.turn == 'white' else T('black_player')
         move_str = input(f"\n{T('player_turn', player=player_name)}").strip().lower()
@@ -192,7 +268,7 @@ def play_vs_stockfish():
         while game.status == "ongoing":
             clear_screen()
             should_flip = (player_color == 'black' and settings['flip_board'])
-            print(game.board.get_board_string(flip=should_flip))
+            draw_board(game.board, flip=(game.board.turn == 'black' and settings['flip_board']))
 
             # Определяем, чей сейчас ход
             is_human_turn = (game.board.turn == player_color)

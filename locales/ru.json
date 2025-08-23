@@ -44,5 +44,9 @@
     "choose_color_prompt": "За кого вы хотите играть? (б/белые или ч/черные): ",
     "ai_thinking": "ИИ думает...",
     "ai_makes_move": "ИИ делает ход",
-    "ai_error": "ИИ не смог сделать ход. Игра прервана."
+    "ai_error": "ИИ не смог сделать ход. Игра прервана.",
+    "settings_piece_style": "5. Стиль фигур (Текущий: {style})",
+    "style_classic": "Классический",
+    "style_unicode": "Unicode",
+    "settings_back": "6. Назад в меню"
 }
