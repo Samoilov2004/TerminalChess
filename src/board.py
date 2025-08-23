@@ -3,14 +3,12 @@ import copy
 # Правило повторения позиции 3 раза не выполнено, ибо история не хранится пока
 
 class ChessBoard:
+    """
+    Класс представляет шахматную доску и управляет логикой игры.
+    Он отслеживает положение фигур, очередность хода, права на рокировку
+    и другие состояния игры в соответствии с правилами FIDE.
+    """
     def __init__(self):
-        """
-        Инициализирует доску в начальном состоянии.
-        Заглавные буквы - белые фигуры, строчные - черные.
-        'p' - pawn (пешка), 'r' - rook (ладья), 'n' - knight (конь),
-        'b' - bishop (слон), 'q' - queen (ферзь), 'k' - king (король).
-        '.' - пустая клетка.
-        """
         self.board = [
             ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
             ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
@@ -21,94 +19,65 @@ class ChessBoard:
             ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
             ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
         ]
-        self.white_to_move = True
+        self.turn = 'white'
         self.castling_rights = [[True, True], [True, True]]
-        self.en_passant_target = None  # Coordinates for en passant
-        self.halfmove_clock = 0  # Counter of moves without capture and pawn movement (for the 50-move rule)
+        self.en_passant_target = None
+        self.halfmove_clock = 0
         self.fullmove_number = 1
         self.move_history = []
 
     def __str__(self):
-        """Визуальное представление доски в консоли."""
-        board_str = "   a  b  c  d  e  f  g  h\n"
+        board_str = f"   a  b  c  d  e  f  g  h\n"
         board_str += "  -------------------------\n"
         for i, row in enumerate(self.board):
             board_str += f"{8 - i}| {' '.join(row)} |{8 - i}\n"
         board_str += "  -------------------------\n"
-        board_str += "   a  b  c  d  e  f  g  h\n"
+        turn_str = "White to move" if self.turn == 'white' else "Black to move"
+        board_str += f"Turn: {self.fullmove_number}. {turn_str}\n"
         return board_str
 
-    def get_color(self, piece):
+    def get_piece_color(self, piece):
         """Возвращает цвет фигуры ('white' или 'black') или None."""
-        if piece.isupper():
-            return 'white'
-        if piece.islower():
-            return 'black'
-        return None
+        if piece == '.':
+            return None
+        return 'white' if piece.isupper() else 'black'
 
     def _parse_pos(self, pos_str):
-        """Преобразует 'e2' в (6, 4)."""
-        if not isinstance(pos_str, str) or len(pos_str) != 2:
-            return None
+        if not isinstance(pos_str, str) or len(pos_str) != 2: return None
         col = ord(pos_str[0]) - ord('a')
         row = 8 - int(pos_str[1])
-        if 0 <= row < 8 and 0 <= col < 8:
-            return row, col
+        if 0 <= row < 8 and 0 <= col < 8: return row, col
         return None
 
-    def _to_algebraic(self, pos):
-        """Преобразует (6, 4) в 'e2'."""
-        row, col = pos
-        return chr(ord('a') + col) + str(8 - row)
-    
     def get_piece_at(self, pos):
-        """Возвращает фигуру по координатам (row, col)."""
         row, col = pos
         return self.board[row][col]
 
-    def is_in_check(self, color):
-        """Проверяет, находится ли король указанного цвета под шахом."""
-        king_char = 'K' if color == 'white' else 'k'
-        king_pos = None
-        # Finding the King
-        for r in range(8):
-            for c in range(8):
-                if self.board[r][c] == king_char:
-                    king_pos = (r, c)
-                    break
-            if king_pos:
-                break
-        
-        if not king_pos: # In case the king is not on the board (theoretically)
-            return False
-
-        # Check if the king is attacked
-        return self._is_square_attacked(king_pos, 'white' if color == 'black' else 'black')
-
     def _is_square_attacked(self, pos, attacker_color):
         """Проверяет, атакована ли клетка `pos` фигурами цвета `attacker_color`."""
-        # Checking the pawn attack
-        pawn_char = 'p' if attacker_color == 'white' else 'P'
-        pawn_dir = 1 if attacker_color == 'white' else -1
         r, c = pos
+
+        pawn_char = 'P' if attacker_color == 'white' else 'p'
+        # Направление, ОТКУДА приходит атака пешки
+        pawn_dir = 1 if attacker_color == 'white' else -1 
         if 0 <= r + pawn_dir < 8:
             if 0 <= c - 1 < 8 and self.board[r + pawn_dir][c - 1] == pawn_char: return True
             if 0 <= c + 1 < 8 and self.board[r + pawn_dir][c + 1] == pawn_char: return True
 
-        # Checking the knight's attack
-        knight_char = 'n' if attacker_color == 'white' else 'N'
+        # Проверка атаки конем
+        knight_char = 'N' if attacker_color == 'white' else 'n'
         for dr, dc in [(2,1), (2,-1), (-2,1), (-2,-1), (1,2), (1,-2), (-1,2), (-1,-2)]:
              nr, nc = r + dr, c + dc
              if 0 <= nr < 8 and 0 <= nc < 8 and self.board[nr][nc] == knight_char:
                  return True
 
-        # Checking on straight lines and diagonals (rooks, bishops, queens, king)
-        rook_char = 'r' if attacker_color == 'white' else 'R'
-        bishop_char = 'b' if attacker_color == 'white' else 'B'
-        queen_char = 'q' if attacker_color == 'white' else 'Q'
-        king_char = 'k' if attacker_color == 'white' else 'K'
+        # Проверка по прямым и диагоналям
+        rook_char = 'R' if attacker_color == 'white' else 'r'
+        bishop_char = 'B' if attacker_color == 'white' else 'b'
+        queen_char = 'Q' if attacker_color == 'white' else 'q'
+        king_char = 'K' if attacker_color == 'white' else 'k'
 
-        # Straight lines (rook, queen)
+        # Прямые линии (ладья, ферзь)
         for dr, dc in [(0,1), (0,-1), (1,0), (-1,0)]:
             for i in range(1, 8):
                 nr, nc = r + i*dr, c + i*dc
@@ -117,11 +86,10 @@ class ChessBoard:
                     if piece != '.':
                         if piece in (rook_char, queen_char): return True
                         if i == 1 and piece == king_char: return True
-                        break # Путь заблокирован
-                else:
-                    break
+                        break 
+                else: break
         
-        # Diagonals (bishop, queen)
+        # Диагонали (слон, ферзь)
         for dr, dc in [(1,1), (1,-1), (-1,1), (-1,-1)]:
             for i in range(1, 8):
                 nr, nc = r + i*dr, c + i*dc
@@ -131,49 +99,53 @@ class ChessBoard:
                         if piece in (bishop_char, queen_char): return True
                         if i == 1 and piece == king_char: return True
                         break
-                else:
-                    break
-        
+                else: break
         return False
+    
+    def is_in_check(self, color):
+        """Проверяет, находится ли король указанного цвета под шахом."""
+        king_char = 'K' if color == 'white' else 'k'
+        king_pos = None
+        for r in range(8):
+            for c in range(8):
+                if self.board[r][c] == king_char:
+                    king_pos = (r, c)
+                    break
+            if king_pos: break
+        
+        if not king_pos: return False
+        
+        opponent_color = 'black' if color == 'white' else 'white'
+        return self._is_square_attacked(king_pos, opponent_color)
 
     def get_legal_moves(self):
         """
         Возвращает список всех легальных ходов для текущего игрока.
-        Формат хода: ((from_row, from_col), (to_row, to_col))
         """
         legal_moves = []
-        current_color = 'white' if self.white_to_move else 'black'
         pseudo_legal_moves = self._generate_pseudo_legal_moves()
 
         for move in pseudo_legal_moves:
-            # We make a move on the temporary board to check if the king is under check
             temp_board = copy.deepcopy(self)
             temp_board._make_move_on_board(move)
             
-            if not temp_board.is_in_check(current_color):
+            if not temp_board.is_in_check(self.turn):
                 legal_moves.append(move)
         
         return legal_moves
     
     def _generate_pseudo_legal_moves(self):
-        """
-        Генерирует все возможные ходы, не проверяя, останется ли король под шахом.
-        Это "псевдо-легальные" ходы.
-        """
         moves = []
-        color = 'white' if self.white_to_move else 'black'
         for r in range(8):
             for c in range(8):
                 piece = self.board[r][c]
-                if self.get_color(piece) == color:
+                if self.get_piece_color(piece) == self.turn:
                     moves.extend(self._get_moves_for_piece((r, c)))
         return moves
 
     def _get_moves_for_piece(self, pos):
-        """Возвращает псевдо-легальные ходы для одной фигуры."""
         piece = self.get_piece_at(pos)
         piece_type = piece.lower()
-        
         if piece_type == 'p': return self._get_pawn_moves(pos)
         if piece_type == 'n': return self._get_knight_moves(pos)
         if piece_type == 'k': return self._get_king_moves(pos)
@@ -185,25 +157,21 @@ class ChessBoard:
     def _get_pawn_moves(self, pos):
         moves = []
         r, c = pos
-        color = self.get_color(self.board[r][c])
+        color = self.get_piece_color(self.board[r][c])
         direction = -1 if color == 'white' else 1
         start_row = 6 if color == 'white' else 1
         
-        # Move 1 square forward
         if 0 <= r + direction < 8 and self.board[r + direction][c] == '.':
             moves.append(((r, c), (r + direction, c)))
-            # Move 2 squares from the starting position
             if r == start_row and self.board[r + 2 * direction][c] == '.':
                 moves.append(((r, c), (r + 2 * direction, c)))
         
-        # Taking it diagonally
         for dc in [-1, 1]:
-            if 0 <= c + dc < 8:
+            if 0 <= c + dc < 8 and 0 <= r + direction < 8:
                 target_pos = (r + direction, c + dc)
                 target_piece = self.get_piece_at(target_pos)
-                if target_piece != '.' and self.get_color(target_piece) != color:
-                    moves.append(((r, c), target_pos))
-                # Взятие на проходе
+                if target_piece != '.' and self.get_piece_color(target_piece) != color:
+                    moves.append(((r,c), target_pos))
                 if target_pos == self.en_passant_target:
                     moves.append(((r, c), target_pos))
         return moves
@@ -211,26 +179,26 @@ class ChessBoard:
     def _get_knight_moves(self, pos):
         moves = []
         r, c = pos
-        color = self.get_color(self.board[r][c])
+        color = self.get_piece_color(self.board[r][c])
         for dr, dc in [(2,1), (2,-1), (-2,1), (-2,-1), (1,2), (1,-2), (-1,2), (-1,-2)]:
             nr, nc = r + dr, c + dc
             if 0 <= nr < 8 and 0 <= nc < 8:
                 target_piece = self.board[nr][nc]
-                if self.get_color(target_piece) != color:
+                if self.get_piece_color(target_piece) != color:
                     moves.append(((r, c), (nr, nc)))
         return moves
 
     def _get_king_moves(self, pos):
         moves = []
         r, c = pos
-        color = self.get_color(self.board[r][c])
+        color = self.get_piece_color(self.board[r][c])
         # Usual moves
         for dr in [-1, 0, 1]:
             for dc in [-1, 0, 1]:
                 if dr == 0 and dc == 0: continue
                 nr, nc = r + dr, c + dc
                 if 0 <= nr < 8 and 0 <= nc < 8:
-                    if self.get_color(self.board[nr][nc]) != color:
+                    if self.get_piece_color(self.board[nr][nc]) != color:
                         moves.append(((r, c), (nr, nc)))
         # Castling
         if color == 'white':
@@ -260,7 +228,7 @@ class ChessBoard:
     def _get_sliding_moves(self, pos, directions):
         moves = []
         r, c = pos
-        color = self.get_color(self.board[r][c])
+        color = self.get_piece_color(self.board[r][c])
         for dr, dc in directions:
             for i in range(1, 8):
                 nr, nc = r + i * dr, c + i * dc
@@ -268,7 +236,7 @@ class ChessBoard:
                     target_piece = self.board[nr][nc]
                     if target_piece == '.':
                         moves.append(((r, c), (nr, nc)))
-                    elif self.get_color(target_piece) != color:
+                    elif self.get_piece_color(target_piece) != color:
                         moves.append(((r, c), (nr, nc)))
                         break
                     else:
@@ -279,8 +247,7 @@ class ChessBoard:
 
     def make_move(self, move_str):
         """
-        Принимает ход в формате 'e2e4', проверяет его легальность и выполняет.
-        Возвращает True, если ход выполнен, иначе False.
+        Проверяет и выполняет ход, заданный в алгебраической нотации.
         """
         if len(move_str) < 4: return False
         
@@ -291,89 +258,58 @@ class ChessBoard:
         to_pos = self._parse_pos(to_pos_str)
         
         if from_pos is None or to_pos is None:
-            print("Error: Incorrect move format.")
+            # print("Ошибка: Неверный формат хода.") # Убираем print для чистоты тестов
+            return False
+
+        piece_to_move = self.get_piece_at(from_pos)
+        if self.get_piece_color(piece_to_move) != self.turn:
             return False
 
         move = (from_pos, to_pos)
         legal_moves = self.get_legal_moves()
 
         if move not in legal_moves:
-            print(f"Mistake: Illegal move '{move_str}'.")
+            # print(f"Ошибка: Нелегальный ход '{move_str}'.") # Убираем print для чистоты тестов
             return False
 
-        # If move is legal - come on
         self._make_move_on_board(move, promotion_piece)
         self.move_history.append(move_str)
-
         return True
 
     def _make_move_on_board(self, move, promotion_piece=None):
-        """Внутренний метод для выполнения хода (без проверок легальности)."""
-        from_pos, to_pos = move
-        from_r, from_c = from_pos
-        to_r, to_c = to_pos
+        # ... тело метода без изменений ...
+        from_pos, to_pos = move; from_r, from_c = from_pos; to_r, to_c = to_pos
         piece = self.board[from_r][from_c]
-        
-        # Resetting the 50-move counter if there was a capture or a pawn move
-        if self.board[to_r][to_c] != '.' or piece.lower() == 'p':
-            self.halfmove_clock = 0
-        else:
-            self.halfmove_clock += 1
-            
-        # Updating move number
-        if not self.white_to_move:
-            self.fullmove_number += 1
-            
-        # Reset the target to take on the pass
+        if self.board[to_r][to_c] != '.' or piece.lower() == 'p': self.halfmove_clock = 0
+        else: self.halfmove_clock += 1
+        if self.turn == 'black': self.fullmove_number += 1
         self.en_passant_target = None
-        
-        # Handling special moves
-        # 1. Double pawn move (creates an opportunity for en passant)
-        if piece.lower() == 'p' and abs(from_r - to_r) == 2:
-            self.en_passant_target = ( (from_r + to_r) // 2, from_c )
-        
-        # 2. en passant / взятие на проходе
-        if piece.lower() == 'p' and (to_r, to_c) == self.en_passant_target:
-            self.board[from_r][to_c] = '.'
-            
-        # 3. Castling
+        if piece.lower() == 'p' and abs(from_r - to_r) == 2: self.en_passant_target = ((from_r + to_r) // 2, from_c)
+        if piece.lower() == 'p' and (to_r, to_c) == self.en_passant_target: self.board[from_r][to_c] = '.'
         if piece.lower() == 'k' and abs(from_c - to_c) == 2:
-            if to_c == 6: # Короткая
-                self.board[to_r][5] = self.board[to_r][7]
-                self.board[to_r][7] = '.'
-            else: # Длинная
-                self.board[to_r][3] = self.board[to_r][0]
-                self.board[to_r][0] = '.'
-
-        # Основное перемещение фигуры
-        self.board[to_r][to_c] = piece
-        self.board[from_r][from_c] = '.'
-
-        # 4. Pawn transformation
+            if to_c == 6: self.board[to_r][5], self.board[to_r][7] = self.board[to_r][7], '.'
+            else: self.board[to_r][3], self.board[to_r][0] = self.board[to_r][0], '.'
+        self.board[to_r][to_c], self.board[from_r][from_c] = piece, '.'
         if piece.lower() == 'p' and (to_r == 0 or to_r == 7):
             promo = promotion_piece if promotion_piece and promotion_piece.lower() in 'qrbn' else 'q'
-            self.board[to_r][to_c] = promo.upper() if self.white_to_move else promo.lower()
-        
-        # Updating catling rights
+            self.board[to_r][to_c] = promo.upper() if self.turn == 'white' else promo.lower()
         if piece == 'K': self.castling_rights[0] = [False, False]
         elif piece == 'k': self.castling_rights[1] = [False, False]
         elif piece == 'R' and from_pos == (7, 7): self.castling_rights[0][0] = False
         elif piece == 'R' and from_pos == (7, 0): self.castling_rights[0][1] = False
         elif piece == 'r' and from_pos == (0, 7): self.castling_rights[1][0] = False
         elif piece == 'r' and from_pos == (0, 0): self.castling_rights[1][1] = False
-        
-        self.white_to_move = not self.white_to_move
+        self.turn = 'black' if self.turn == 'white' else 'white'
 
     def is_game_over(self):
-        """Проверяет, закончилась ли игра, и возвращает статус."""
-        legal_moves = self.get_legal_moves()
-        if not legal_moves:
-            current_color = 'white' if self.white_to_move else 'black'
-            if self.is_in_check(current_color):
-                return "checkmate" # Мат
+        """
+        Определяет, завершена ли игровая партия, и возвращает ее статус.
+        """
+        if not self.get_legal_moves():
+            if self.is_in_check(self.turn):
+                return "checkmate"
             else:
-                return "stalemate" # Пат
-        if self.halfmove_clock >= 100: # 50 moves rule
+                return "stalemate"
+        if self.halfmove_clock >= 100:
             return "draw_50_moves"
-        # Другие правила ничьей (недостаточность материала, троекратное повторение) здесь не реализованы
         return "ongoing"
