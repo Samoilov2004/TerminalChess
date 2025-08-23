@@ -92,60 +92,63 @@ def show_dev_notice():
     print(f"\n{T('dev_notice')}")
     time.sleep(2)
 
-def draw_board(board_obj, flip=False):
+
+def draw_board(game_obj, flip=False):
     """
-    Рисует доску, используя выбранный в настройках стиль фигур.
-    Корректно обрабатывает переворот доски.
+    Рисует доску и съеденные фигуры. Финальная, корректная версия.
     """
-    # Получаем актуальный набор символов для фигур
+    board_obj = game_obj.board
     piece_set = PIECE_SETS.get(settings['piece_style'], PIECE_SETS['classic'])
     
-    # --- 1. Определяем порядок, в котором мы будем перебирать ИНДЕКСЫ доски ---
-    # Индексы в Python-списке всегда идут от 0 до 7 (сверху вниз)
-    rank_indices = range(8) if not flip else range(7, -1, -1)
+    # --- 1. Подготавливаем данные для отображения ---
     
-    # --- 2. Определяем, как будут выглядеть надписи ---
+    # Копируем доску, чтобы не изменять оригинал
+    display_board = [row[:] for row in board_obj.board]
+    
+    # Определяем порядок букв для шапки
     files = "a b c d e f g h"
+    
     if flip:
-        # Если доска перевернута, буквы тоже должны идти в обратном порядке
+        # Если нужно перевернуть, переворачиваем и доску, и каждую строку в ней
+        display_board = [row[::-1] for row in display_board[::-1]]
         files = "h g f e d c b a"
 
-    # --- 3. Рисуем "шапку" доски ---
+    # --- 2. Рисуем всё ---
+    
     header = f'   {files}'
     separator = '  +-----------------+'
     board_str = header + "\n" + separator + "\n"
 
-    # --- 4. Рисуем саму доску, ряд за рядом ---
-    for r_idx in rank_indices:
-        # r_idx - это индекс в self.board.board (от 0 до 7)
-        # rank_num - это номер, который мы печатаем сбоку (от 1 до 8)
-        rank_num = 8 - r_idx
-
-        # Получаем сам ряд данных
-        row_list = board_obj.board[r_idx]
+    # Теперь мы всегда итерируемся одинаково, т.к. данные уже подготовлены
+    for i in range(8):
+        rank_num = 8 - i
+        row_list = display_board[i] # Берем подготовленный ряд
         
-        # Если доска перевернута, переворачиваем и сам ряд (h-файл становится первым)
-        if flip:
-            row_list = row_list[::-1]
-            
-        # Заменяем буквы на символы из выбранного "скина"
-        display_row = [piece_set[p] for p in row_list]
+        # Заменяем буквы на символы
+        display_row = [piece_set.get(p, p) for p in row_list]
         
-        # Собираем все в одну строку
+        # Собираем строку
         board_str += f"{rank_num} | {' '.join(display_row)} | {rank_num}\n"
     
-    # --- 5. Рисуем "подвал" и информацию об игре ---
     board_str += separator + "\n" + header + "\n"
     
-    turn_color = "White" if board_obj.turn == 'white' else "Black"
-    turn_num = board_obj.fullmove_number
-    # Используем ключи локализации
-    board_str += f"\n{T('turn_info', turn_num=turn_num, color=T(board_obj.turn + '_player'))}\n"
+    # --- 3. Отображение съеденных фигур (если включено) ---
+    if settings['show_captured_pieces']:
+        white_captured_display = sorted([piece_set.get(p, p) for p in game_obj.captured_by_white])
+        black_captured_display = sorted([piece_set.get(p, p) for p in game_obj.captured_by_black])
+        
+        board_str += f"{T('captured_by_white')}: {' '.join(white_captured_display)}\n"
+        board_str += f"{T('captured_by_black')}: {' '.join(black_captured_display)}\n"
+
+    # --- 4. Информация об игре ---
+    turn_color_key = board_obj.turn + '_player'
+    board_str += f"\n{T('turn_info', turn_num=board_obj.fullmove_number, color=T(turn_color_key))}\n"
 
     if board_obj.is_in_check(board_obj.turn):
         board_str += f"{T('check_status')}\n"
 
     print(board_str)
+
 
 def settings_menu():
     """Меню для изменения всех настроек игры."""
@@ -231,7 +234,7 @@ def play_human_vs_human():
     while True:
         clear_screen()
         should_flip = game.board.turn == 'black' and settings['flip_board']
-        draw_board(game.board, flip=(game.board.turn == 'black' and settings['flip_board']))
+        draw_board(game, flip=(game.board.turn == 'black' and settings['flip_board']))
                 
         player_name = T('white_player') if game.board.turn == 'white' else T('black_player')
         move_str = input(f"\n{T('player_turn', player=player_name)}").strip().lower()
@@ -293,7 +296,7 @@ def play_vs_stockfish():
         while game.status == "ongoing":
             clear_screen()
             should_flip = (player_color == 'black' and settings['flip_board'])
-            draw_board(game.board, flip=(game.board.turn == 'black' and settings['flip_board']))
+            draw_board(game, flip=(game.board.turn == 'black' and settings['flip_board']))
 
             # Определяем, чей сейчас ход
             is_human_turn = (game.board.turn == player_color)

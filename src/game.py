@@ -10,8 +10,9 @@ class Game:
         self.board = ChessBoard()
         self.position_history = collections.Counter()
         self.status = "ongoing"
-        # Сразу записываем начальную позицию в историю
         self._update_history(self.board.get_position_hash())
+        self.captured_by_white = []
+        self.captured_by_black = []
 
     def _update_history(self, position_hash):
         """Добавляет хэш позиции в историю."""
@@ -21,35 +22,54 @@ class Game:
         """
         Пытается сделать ход. Если успешно, обновляет историю и статус игры.
         """
-        # --- НАЧАЛО ИЗМЕНЕНИЙ ---
-        
-        # 1. Делаем ход на доске. Если он нелегален, сразу выходим.
-        success = self.board.make_move(move_str)
-        if not success:
+        from_pos = self.board._parse_pos(move_str[:2])
+        to_pos = self.board._parse_pos(move_str[2:4])
+        if not from_pos or not to_pos:
             return False
-
-        # 2. Если ход успешен, получаем хэш НОВОЙ позиции
-        new_position_hash = self.board.get_position_hash()
         
-        # 3. Добавляем новую позицию в историю
-        self._update_history(new_position_hash)
+        piece_captured = self.board.get_piece_at(to_pos)
         
-        # 4. Теперь, когда вся информация актуальна, проверяем конец игры
-        self._check_game_over()
+        success = self.board.make_move(move_str)
         
-        return True
-        # --- КОНЕЦ ИЗМЕНЕНИЙ ---
+        if success:
+            if piece_captured != '.':
+                if self.board.turn == 'black':
+                    self.captured_by_white.append(piece_captured)
+                else: 
+                    self.captured_by_black.append(piece_captured)
+            
+            
+            new_position_hash = self.board.get_position_hash()
+            self._update_history(new_position_hash)
+            self._check_game_over()
+        
+        return success
 
     def undo_move(self):
         """
         Отменяет последний ход, откатывая и доску, и историю позиций.
         """
-        # Сначала уменьшаем счетчик текущей (новой) позиции
+        if not self.board.move_history:
+            return False
+
+        last_captured_piece_char = self.board.move_history[-1]['piece_captured']
+        if last_captured_piece_char != '.':
+            if self.board.turn == 'black': 
+                if self.captured_by_white and self.captured_by_white[-1] == last_captured_piece_char:
+                    self.captured_by_white.pop()
+            else:
+                if self.captured_by_black and self.captured_by_black[-1] == last_captured_piece_char:
+                    self.captured_by_black.pop()
+        
+        current_hash = self.board.get_position_hash()
+        if self.position_history.get(current_hash, 0) > 0:
+            self.position_history[current_hash] -= 1
+        
+        return self.board.undo_move()
         current_hash = self.board.get_position_hash()
         if self.position_history[current_hash] > 0:
             self.position_history[current_hash] -= 1
         
-        # Затем откатываем саму доску
         return self.board.undo_move()
 
     def _check_game_over(self):
