@@ -131,6 +131,10 @@ def play_human_vs_human():
         
         if not game.make_move(move_str):
             print(f"\n{T('illegal_move')}"); time.sleep(2)
+        else:
+            print(T(game.status, default=f"Ничья ({game.status})"))
+
+
 
 def main_menu():
     """Отображает главное меню и обрабатывает выбор пользователя."""

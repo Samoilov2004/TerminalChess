@@ -446,3 +446,53 @@ class ChessBoard:
         
         # Собираем все в один хэш
         return f"{board_str} {self.turn[0]} {castling_str} {en_passant_str}"
+
+    def has_insufficient_material(self):
+        """
+        Проверяет, достаточно ли на доске материала для постановки мата.
+        Возвращает True, если материала недостаточно (ничья), иначе False.
+        """
+        # 1. Собираем все фигуры, кроме королей, в один список
+        pieces = []
+        for r in range(8):
+            for c in range(8):
+                piece = self.board[r][c]
+                if piece != '.' and piece.lower() != 'k':
+                    pieces.append(piece)
+
+        # 2. Если остались ферзи, ладьи или пешки, мат возможен.
+        for piece in pieces:
+            if piece.lower() in 'qrp':
+                return False
+
+        # 3. На этом этапе у нас остались только слоны и кони.
+        # Если фигур нет (только короли) или осталась только одна легкая фигура.
+        if len(pieces) <= 1:
+            return True # K vs K, K vs KN, K vs KB - это ничьи.
+
+        # 4. Проверка на двух коней (K+N+N vs K - мат возможен, но крайне редко)
+        # В большинстве правил это не считается ничьей.
+        if len(pieces) == 2 and pieces[0].lower() == 'n' and pieces[1].lower() == 'n':
+            return False # Мат двумя конями возможен.
+
+        # 5. Проверка на слонов одного цвета
+        # Если все оставшиеся фигуры - слоны, и они все на полях одного цвета.
+        bishops = [p for p in pieces if p.lower() == 'b']
+        if len(bishops) == len(pieces): # Убедимся, что кроме слонов ничего нет
+            bishop_positions = []
+            for r in range(8):
+                for c in range(8):
+                    if self.board[r][c].lower() == 'b':
+                        bishop_positions.append((r, c))
+            
+            # Определяем цвет поля первого слона
+            first_bishop_square_color = (bishop_positions[0][0] + bishop_positions[0][1]) % 2
+            # Проверяем, все ли остальные слоны на полях того же цвета
+            for i in range(1, len(bishop_positions)):
+                bishop_square_color = (bishop_positions[i][0] + bishop_positions[i][1]) % 2
+                if bishop_square_color != first_bishop_square_color:
+                    return False # Слоны на полях разного цвета, мат возможен
+            return True # Все слоны на полях одного цвета, ничья
+
+        # Во всех остальных случаях (например, слон + конь) мат возможен.
+        return False
