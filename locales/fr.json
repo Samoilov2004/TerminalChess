@@ -28,6 +28,7 @@
     "black_player": "Noirs",
     "player_turn": "Tour de {player} : ",
     "illegal_move": "!!! Coup illégal ou incorrect. Veuillez réessayer. !!!",
-    "goodbye": "Au revoir !"
+    "goodbye": "Au revoir !",
+    "input_prompt": "Votre choix : "
 }
 

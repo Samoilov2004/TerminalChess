@@ -28,6 +28,7 @@
     "black_player": "Negras",
     "player_turn": "Turno de {player}: ",
     "illegal_move": "!!! Movimiento ilegal o incorrecto. Inténtalo de nuevo. !!!",
-    "goodbye": "¡Adiós!"
+    "goodbye": "¡Adiós!",
+    "input_prompt": "Su elección: "
 }
 

@@ -28,6 +28,7 @@
     "black_player": "Black",
     "player_turn": "Player's turn ({player}): ",
     "illegal_move": "!!! Illegal or incorrect move. Please try again. !!!",
-    "goodbye": "Goodbye!"
+    "goodbye": "Goodbye!",
+    "input_prompt": "Your choice: "
 }
 

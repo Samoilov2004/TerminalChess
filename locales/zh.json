@@ -28,6 +28,7 @@
     "black_player": "黑方",
     "player_turn": "{player} 回合: ",
     "illegal_move": "!!! 无效或不合法的移动，请重试。 !!!",
-    "goodbye": "再见！"
+    "goodbye": "再见！",
+    "input_prompt": "请输入选择: "
 }
 

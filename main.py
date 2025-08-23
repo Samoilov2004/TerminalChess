@@ -65,7 +65,7 @@ def show_dev_notice():
     time.sleep(2)
 
 def settings_menu():
-    """Меню для изменения настроек языка."""
+    """Меню для изменения настроек языка с выводом в столбик."""
     while True:
         clear_screen()
         
@@ -79,19 +79,32 @@ def settings_menu():
         choice = input(T('choice')).strip()
 
         if choice == '1':
-            prompt = T("lang_choice_prompt")
+            # --- НАЧАЛО ИЗМЕНЕНИЙ ---
+
+            clear_screen()
+            print(T("lang_choice_prompt")) # 1. Выводим заголовок
+            print("-" * 20)
+            
+            # 2. В цикле выводим каждый язык на новой строке
             for i, lang_code in enumerate(available_languages, 1):
                 lang_name_with_flag = loaded_texts.get(lang_code, {}).get("lang_name_flag", lang_code)
-                prompt += f"{i}. {lang_name_with_flag} "
+                print(f"  {i}. {lang_name_with_flag}")
             
-            lang_choice = input(prompt + ": ").strip()
+            print("-" * 20)
             
+            # 3. Запрашиваем ввод у пользователя
+            lang_choice = input(T('input_prompt')).strip()
+            
+            # --- КОНЕЦ ИЗМЕНЕНИЙ ---
+            
+            # Логика обработки выбора остается прежней
             try:
                 chosen_index = int(lang_choice) - 1
                 if 0 <= chosen_index < len(available_languages):
                     settings['lang'] = available_languages[chosen_index]
             except ValueError:
-                pass
+                pass # Игнорируем нечисловой ввод
+
         elif choice == '2':
             break
 
