@@ -56,21 +56,22 @@ class Game:
         """
         Проверяет все условия окончания игры в правильном порядке и обновляет self.status.
         """
-        # ПРИОРИТЕТ 1: МАТ И ПАТ
+        # ПРИОРИТЕТ 1: НЕДОСТАТОЧНОСТЬ МАТЕРИАЛА
+        # Это мгновенное состояние доски, которое не зависит от того, чей ход.
+        # Если материала нет, игра - ничья, даже если формально есть мат в 1 ход
+        # (такой мат поставить невозможно).
+        if self.board.has_insufficient_material():
+            self.status = "draw_insufficient_material"
+            return
+            
+        # ПРИОРИТЕТ 2: МАТ И ПАТ
+        # Если у текущего игрока нет легальных ходов, игра заканчивается немедленно.
         if not self.board.get_legal_moves():
             if self.board.is_in_check(self.board.turn):
                 self.status = "checkmate"
             else:
                 self.status = "stalemate"
             return
-
-        # --- НАЧАЛО ИЗМЕНЕНИЯ ---
-        # ПРИОРИТЕТ 2: НЕДОСТАТОЧНОСТЬ МАТЕРИАЛА
-        # Это мгновенное состояние доски, которое важнее счетчиков.
-        if self.board.has_insufficient_material():
-            self.status = "draw_insufficient_material"
-            return
-        # --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
         # ПРИОРИТЕТ 3: ПРАВИЛО 50 ХОДОВ
         if self.board.halfmove_clock >= 100:
@@ -83,4 +84,5 @@ class Game:
             self.status = "draw_repetition"
             return
         
+        # Если ничего не сработало, игра продолжается
         self.status = "ongoing"

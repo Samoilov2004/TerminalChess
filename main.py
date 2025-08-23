@@ -8,8 +8,13 @@ from src.board import ChessBoard
 from src.game import Game 
 
 # --- КОНФИГУРАЦИЯ ---
-LOCALES_DIR = 'locales' # Папка с файлами переводов
-settings = { 'lang': 'ru' }
+LOCALES_DIR = 'locales'
+settings = {
+    'lang': 'ru',
+    'confirm_move': False,
+    'flip_board': False,
+    'auto_queen': False
+}
 
 loaded_texts = {}
 available_languages = []
@@ -66,15 +71,22 @@ def show_dev_notice():
     time.sleep(2)
 
 def settings_menu():
-    """Меню для изменения настроек языка с выводом в столбик."""
+    """Меню для изменения всех настроек."""
     while True:
         clear_screen()
         
-        current_lang_name = T("lang_name_flag")
-        
+        # Получаем статусы всех настроек для отображения
+        lang_name = T("lang_name_flag")
+        confirm_status = T("status_on") if settings['confirm_move'] else T("status_off")
+        flip_status = T("status_on") if settings['flip_board'] else T("status_off")
+        auto_queen_status = T("status_on") if settings['auto_queen'] else T("status_off")
+
         print(T("settings_title"))
-        print(T("settings_lang", lang_name=current_lang_name))
-        print(T("settings_back"))
+        print(T("settings_lang", lang_name=lang_name))
+        print(T("settings_confirm_move", status=confirm_status)) # Убедитесь, что этот ключ есть в JSON
+        print(T("settings_flip_board", status=flip_status))
+        print(T("settings_auto_queen", status=auto_queen_status))
+        print(T("settings_back")) # Этот ключ должен содержать верный номер
         print("===================================")
         
         choice = input(T('choice')).strip()
@@ -103,37 +115,48 @@ def settings_menu():
                     settings['lang'] = available_languages[chosen_index]
             except ValueError:
                 pass # Игнорируем нечисловой ввод
-
-        elif choice == '2':
+        elif choice == '2': # Подтверждение хода
+            settings['confirm_move'] = not settings['confirm_move']
+        elif choice == '3': # Переворот доски
+            settings['flip_board'] = not settings['flip_board']
+        elif choice == '4': # Авто-королева
+            settings['auto_queen'] = not settings['auto_queen']
+        elif choice == '5': # Назад
             break
 
 def play_human_vs_human():
     game = Game()
-    
     while True:
         clear_screen()
-        print(game.board) 
-        
-        if game.status != "ongoing":
-            print(f"\n{T('game_over_title')}")
-            if game.status == "checkmate":
-                winner_color = "black" if game.board.turn == "white" else "white"
-                winner_name_key = 'white_player' if winner_color == 'white' else 'black_player'
-                print(T('checkmate', winner=T(winner_name_key)))
-            else:
-                print(T(game.status, default=f"Ничья ({game.status})"))
-            break
-        
+        should_flip = game.board.turn == 'black' and settings['flip_board']
+        print(game.board.get_board_string(flip=should_flip))
+                
         player_name = T('white_player') if game.board.turn == 'white' else T('black_player')
         move_str = input(f"\n{T('player_turn', player=player_name)}").strip().lower()
 
         if move_str in ['exit', 'quit']: break
-        
+
+        from_pos_str, to_pos_str = move_str[:2], move_str[2:4]
+        from_pos = game.board._parse_pos(from_pos_str)
+        if from_pos:
+            piece = game.board.get_piece_at(from_pos)
+            to_rank = to_pos_str[1]
+            if piece.lower() == 'p' and (to_rank == '8' or to_rank == '1') and len(move_str) == 4 and settings['auto_queen']:
+                move_str += 'q'
+                print(f"Auto-queen: ход изменен на '{move_str}'")
+                time.sleep(1)
+
         if not game.make_move(move_str):
             print(f"\n{T('illegal_move')}"); time.sleep(2)
-        else:
-            print(T(game.status, default=f"Ничья ({game.status})"))
-
+            continue
+            
+        if settings['confirm_move']:
+            clear_screen()
+            print(game.board.get_board_string(flip=should_flip))
+            confirmation = input(f"\n{T('confirm_prompt')}").strip().lower()
+            if confirmation in ['n', 'no', 'нет', 'т']:
+                game.undo_move()
+                continue
 
 
 def main_menu():

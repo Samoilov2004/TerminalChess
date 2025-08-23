@@ -402,6 +402,42 @@ class ChessBoard:
 
         self.turn = 'black' if self.turn == 'white' else 'white'
 
+    def get_board_string(self, flip=False):
+        """
+        Возвращает строковое представление доски.
+        :param flip: Если True, доска будет перевернута (для игры за черных).
+        """
+        if flip:
+            # Если доска перевернута, ряды идут от 1 до 8, а файлы - от h до a
+            ranks = range(8) # 0..7 -> 1..8
+            files = "h g f e d c b a"
+            board_view = [row[::-1] for row in self.board[::-1]] # Переворачиваем и доску, и каждый ряд
+        else:
+            # Стандартный вид
+            ranks = range(7, -1, -1) # 7..0 -> 8..1
+            files = "a b c d e f g h"
+            board_view = self.board
+
+        header = f'   {files}'
+        separator = '  +-----------------+'
+
+        board_str = header + "\n" + separator + "\n"
+
+        for r_index in ranks: # Итерируемся по индексам рядов в нужном порядке
+            rank_number = r_index + 1
+            row_content = " ".join(board_view[r_index])
+            board_str += f"{rank_number} | {row_content} | {rank_number}\n"
+            
+        board_str += separator + "\n" + header + "\n"
+
+        turn_color = "White" if self.turn == 'white' else "Black"
+        board_str += f"\nTurn: {self.fullmove_number}. {turn_color} to move.\n"
+
+        if self.is_in_check(self.turn):
+            board_str += "CHECK!\n"
+
+        return board_str
+
     def is_game_over(self):
         """
         Определяет, завершена ли игровая партия, и возвращает ее статус.

@@ -29,5 +29,14 @@
     "player_turn": "Ход игрока ({player}): ",
     "illegal_move": "!!! Нелегальный или некорректный ход. Попробуйте снова. !!!",
     "goodbye": "До свидания!",
-    "input_prompt": "Ваш выбор: "
+    "input_prompt": "Ваш выбор: ",
+    "draw_repetition": "Ничья: троекратное повторение позиции",
+    "draw_insufficient_material":"Результат: Ничья (Недостаточно материала).",
+    "settings_confirm_move": "2. Подтверждение хода (Текущий: {status})",
+    "confirm_prompt": "Подтвердить ход? (y/да или n/нет): ",
+    "settings_flip_board": "3. Переворот доски за черных (Текущий: {status})",
+    "settings_auto_queen": "4. Авто-королева (Текущий: {status})",
+    "settings_back": "5. Назад в меню",
+    "status_on": "Вкл",
+    "status_off": "Выкл"
 }

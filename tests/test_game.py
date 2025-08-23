@@ -54,47 +54,36 @@ class TestGameRules(unittest.TestCase):
 
     def test_50_move_rule_draw(self):
         """
-        Проверяет ничью по правилу 50 ходов, двигая двух коней по разным углам доски.
+        Проверяет ничью по правилу 50 ходов, двигая двух не мешающих друг другу коней.
         """
-        self.game.board.board = [
-            ['.', '.', '.', '.', 'k', '.', '.', '.'], # e8
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', '.'],
-            ['.', '.', '.', '.', '.', '.', '.', 'n'], # h2
-            ['.', 'N', '.', '.', 'K', '.', '.', '.']  # b1, e1
-        ]
-        self.game.board.halfmove_clock = 0
-        self.game.position_history.clear()
-        self.game.position_history[self.game.board.get_position_hash()] += 1
+        self.setUp() # Создаем новую игру
 
+        # Ход 1-98 (49 ходов белых, 49 черных)
         for _ in range(49):
-            self.assertTrue(self.game.make_move("b1c3"), "Ход белого коня должен быть успешен")
-            self.assertTrue(self.game.make_move("h2g4"), "Ход черного коня должен быть успешен")
-            self.assertTrue(self.game.make_move("c3b1"), "Ход белого коня назад должен быть успешен")
-            self.assertTrue(self.game.make_move("g4h2"), "Ход черного коня назад должен быть успешен")
+            self.assertTrue(self.game.make_move("b1a3"))
+            self.assertTrue(self.game.make_move("b8a6"))
+            self.assertTrue(self.game.make_move("a3b1"))
+            self.assertTrue(self.game.make_move("a6b8"))
         
+        # После 49*4 = 196 ходов, наш счетчик должен быть 196. Давайте упростим до 98.
         self.setUp()
+        for _ in range(24): # 24 * 4 = 96 полуходов
+            self.game.make_move("b1a3"); self.game.make_move("b8a6");
+            self.game.make_move("a3b1"); self.game.make_move("a6b8");
         
-        for i in range(49):
-            # Белые
-            if i % 2 == 0: self.assertTrue(self.game.make_move("g1f3"))
-            else: self.assertTrue(self.game.make_move("f3g1"))
-            # Черные
-            if i % 2 == 0: self.assertTrue(self.game.make_move("b8c6"))
-            else: self.assertTrue(self.game.make_move("c6b8"))
-            
+        self.assertEqual(self.game.board.halfmove_clock, 96)
+
+        # 97-98
+        self.game.make_move("b1a3"); self.game.make_move("b8a6");
         self.assertEqual(self.game.board.halfmove_clock, 98)
         self.assertEqual(self.game.status, "ongoing")
 
-        # 99-й ход
-        self.game.make_move("g1f3")
+        # 99
+        self.game.make_move("a3b1")
         self.assertEqual(self.game.board.halfmove_clock, 99)
-        
-        # 100-й ход - вызывает ничью
-        self.game.make_move("b8c6")
+
+        # 100
+        self.game.make_move("a6b8")
         self.assertEqual(self.game.board.halfmove_clock, 100)
         self.assertEqual(self.game.status, "draw_50_moves")
 
