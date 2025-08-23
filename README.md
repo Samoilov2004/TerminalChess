@@ -25,7 +25,7 @@
 
 Откройте терминал или командную строку и выполните:
 ```bash
-git clone https://github.com/Samoilov2004/Chess_Assistant.git
+git clone https://github.com/Samoilov2004/TerminalChess.git
 cd ./Chess_Assistant
 ```
 
