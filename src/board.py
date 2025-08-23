@@ -324,30 +324,82 @@ class ChessBoard:
         return True
 
     def _make_move_on_board(self, move, promotion_piece=None):
-        from_pos, to_pos = move; from_r, from_c = from_pos; to_r, to_c = to_pos
-        piece = self.board[from_r][from_c]
-        if self.board[to_r][to_c] != '.' or piece.lower() == 'p': self.halfmove_clock = 0
-        else: self.halfmove_clock += 1
-        if self.turn == 'black': self.fullmove_number += 1
+        """
+        Внутренний метод для выполнения хода на доске без проверок легальности.
+        Обновляет все состояния, связанные с доской.
+        """
+        from_pos, to_pos = move
+        from_r, from_c = from_pos
+        to_r, to_c = to_pos
+        
+        piece_moved = self.board[from_r][from_c]
+        piece_captured = self.board[to_r][to_c]
+        
+        last_state = {
+            'move': move,
+            'piece_moved': piece_moved,
+            'piece_captured': piece_captured,
+            'en_passant_target': self.en_passant_target,
+            'castling_rights': copy.deepcopy(self.castling_rights),
+            'halfmove_clock': self.halfmove_clock,
+        }
+        self.move_history.append(last_state)
+
+        # Сбрасываем счетчик 50 ходов, если было взятие или ход пешкой
+        if piece_captured != '.' or piece_moved.lower() == 'p':
+            self.halfmove_clock = 0
+        else:
+            self.halfmove_clock += 1
+            
+        if self.turn == 'black':
+            self.fullmove_number += 1
+            
+        current_en_passant_target = self.en_passant_target
         self.en_passant_target = None
-        if piece.lower() == 'p' and abs(from_r - to_r) == 2: self.en_passant_target = ((from_r + to_r) // 2, from_c)
-        if piece.lower() == 'p' and (to_r, to_c) == self.en_passant_target: self.board[from_r][to_c] = '.'
-        if piece.lower() == 'k' and abs(from_c - to_c) == 2:
-            if to_c == 6: self.board[to_r][5], self.board[to_r][7] = self.board[to_r][7], '.'
-            else: self.board[to_r][3], self.board[to_r][0] = self.board[to_r][0], '.'
-        self.board[to_r][to_c], self.board[from_r][from_c] = piece, '.'
-        if piece.lower() == 'p' and (to_r == 0 or to_r == 7):
-            promo = promotion_piece if promotion_piece and promotion_piece.lower() in 'qrbn' else 'q'
-            self.board[to_r][to_c] = promo.upper() if self.turn == 'white' else promo.lower()
-        color = self.get_piece_color(piece)
-        if piece.lower() == 'k':
+        
+        # --- 3. Обрабатываем специальные ходы ---
+        
+        # 3.1 Двойной ход пешки (создает возможность для en passant)
+        if piece_moved.lower() == 'p' and abs(from_r - to_r) == 2:
+            self.en_passant_target = ((from_r + to_r) // 2, from_c)
+        
+        # 3.2 Взятие на проходе (En Passant)
+        if piece_moved.lower() == 'p' and to_pos == current_en_passant_target and piece_captured == '.':
+             captured_pawn_row = from_r
+             captured_pawn_col = to_c
+             self.board[captured_pawn_row][captured_pawn_col] = '.'
+            
+        # 3.3 Рокировка (Castling)
+        if piece_moved.lower() == 'k' and abs(from_c - to_c) == 2:
+            if to_c > from_c:
+                self.board[to_r][to_c-1] = self.board[to_r][to_c+1]
+                self.board[to_r][to_c+1] = '.'
+            else:
+                self.board[to_r][to_c+1] = self.board[to_r][to_c-2]
+                self.board[to_r][to_c-2] = '.'
+
+        # --- 4. Основное перемещение фигуры ---
+        self.board[to_r][to_c] = piece_moved
+        self.board[from_r][from_c] = '.'
+
+        if piece_moved.lower() == 'p' and (to_r == 0 or to_r == 7):
+            # По умолчанию превращаем в ферзя, если не указано иное
+            promo_char = promotion_piece if promotion_piece and promotion_piece.lower() in 'qrbn' else 'q'
+            self.board[to_r][to_c] = promo_char.upper() if self.turn == 'white' else promo_char.lower()
+        
+        # --- 5. Обновляем глобальные состояния ---
+        
+        color = self.turn
+        if piece_moved.lower() == 'k':
             self.castling_rights[color]['kingside'] = False
             self.castling_rights[color]['queenside'] = False
-        elif piece.lower() == 'r':
-            if from_pos[1] == 0: # a-файл
-                self.castling_rights[color]['queenside'] = False
-            elif from_pos[1] == 7: # h-файл
-                self.castling_rights[color]['kingside'] = False
+        elif piece_moved.lower() == 'r':
+            # Если ладья сдвинулась с начальной позиции
+            if from_pos == (7, 0) and color == 'white': self.castling_rights['white']['queenside'] = False
+            elif from_pos == (7, 7) and color == 'white': self.castling_rights['white']['kingside'] = False
+            elif from_pos == (0, 0) and color == 'black': self.castling_rights['black']['queenside'] = False
+            elif from_pos == (0, 7) and color == 'black': self.castling_rights['black']['kingside'] = False
+
         self.turn = 'black' if self.turn == 'white' else 'white'
 
     def is_game_over(self):

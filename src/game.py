@@ -24,8 +24,10 @@ class Game:
         """
         success = self.board.make_move(move_str)
         if success:
+            # Сначала проверяем на мат/пат в новой позиции
+            self.check_game_over()
+            # И только потом добавляем позицию в историю для будущих проверок
             self._update_history()
-            self.check_game_over() # Обновляем статус игры после каждого хода
         return success
 
     def undo_move(self):
@@ -46,16 +48,25 @@ class Game:
         Проверяет все условия окончания игры, включая троекратное повторение.
         """
         # Сначала проверяем условия, которые знает сама доска (мат, пат, 50 ходов)
-        board_status = self.board.is_game_over()
-        if board_status != "ongoing":
-            self.status = board_status
-            return self.status
+        def check_game_over(self):
+            current_hash = self.board.get_position_hash()
+            if self.position_history[current_hash] >= 3:
+                self.status = "draw_repetition"
+                return self.status
 
-        # Теперь проверяем условие, которое знает только класс Game
-        current_hash = self.board.get_position_hash()
-        if self.position_history[current_hash] >= 3:
-            self.status = "draw_repetition"
-            return self.status
+            # 2. Проверка на правило 50 ходов
+            if self.board.halfmove_clock >= 100:
+                self.status = "draw_50_moves"
+                return self.status
+
+            # 3. Проверка на мат или пат (если нет легальных ходов)
+            if not self.board.get_legal_moves():
+                if self.board.is_in_check(self.board.turn):
+                    self.status = "checkmate"
+                else:
+                    self.status = "stalemate"
+                return self.status
             
-        self.status = "ongoing"
-        return self.status
+            # 4. Если ничего не сработало, игра продолжается
+            self.status = "ongoing"
+            return self.status
