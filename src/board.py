@@ -30,13 +30,30 @@ class ChessBoard:
         self.move_history = []
 
     def __str__(self):
-        board_str = f"   a  b  c  d  e  f  g  h\n"
-        board_str += "  -------------------------\n"
+        """
+        Возвращает строковое представление доски с правильным выравниванием.
+        """
+        # Префикс 'n| ' (например, '8| ') состоит из 3 символов.
+        # Поэтому шапку мы тоже начинаем с 3 пробелов, чтобы 'a' встало над первой фигурой.
+        header =    '    a b c d e f g h'
+        separator = '  +-----------------+' # 2 пробела, чтобы '+' выровнялся по '|'
+
+        board_str = header + "\n" + separator + "\n"
+
         for i, row in enumerate(self.board):
-            board_str += f"{8 - i}| {' '.join(row)} |{8 - i}\n"
-        board_str += "  -------------------------\n"
-        turn_str = "White to move" if self.turn == 'white' else "Black to move"
-        board_str += f"Turn: {self.fullmove_number}. {turn_str}\n"
+            rank = 8 - i
+            row_content = " ".join(row)
+            # Формируем строку ряда: 8| r n b ... |8
+            board_str += f"{rank} | {row_content} | {rank}\n"
+            
+        board_str += separator + "\n" + header + "\n"
+
+        turn_color = "White" if self.turn == 'white' else "Black"
+        board_str += f"\nTurn: {self.fullmove_number}. {turn_color} to move.\n"
+
+        if self.is_in_check(self.turn):
+            board_str += "CHECK!\n"
+
         return board_str
 
     def get_piece_color(self, piece):
