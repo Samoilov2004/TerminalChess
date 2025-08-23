@@ -532,3 +532,45 @@ class ChessBoard:
 
         # Во всех остальных случаях (например, слон + конь) мат возможен.
         return False
+
+    def to_fen(self):
+        """Конвертирует текущее состояние доски в стандартную нотацию FEN."""
+        fen_parts = []
+        
+        # 1. Положение фигур
+        for row in self.board:
+            empty_count = 0
+            row_str = ""
+            for piece in row:
+                if piece == '.':
+                    empty_count += 1
+                else:
+                    if empty_count > 0:
+                        row_str += str(empty_count)
+                        empty_count = 0
+                    row_str += piece
+            if empty_count > 0:
+                row_str += str(empty_count)
+            fen_parts.append(row_str)
+        
+        board_fen = "/".join(fen_parts)
+        
+        # 2. Чей ход
+        turn_fen = self.turn[0] # 'w' или 'b'
+        
+        # 3. Права на рокировку
+        castling_fen = ""
+        if self.castling_rights['white']['kingside']: castling_fen += 'K'
+        if self.castling_rights['white']['queenside']: castling_fen += 'Q'
+        if self.castling_rights['black']['kingside']: castling_fen += 'k'
+        if self.castling_rights['black']['queenside']: castling_fen += 'q'
+        if not castling_fen: castling_fen = '-'
+            
+        # 4. Возможность взятия на проходе
+        en_passant_fen = self._to_algebraic(self.en_passant_target) if self.en_passant_target else '-'
+            
+        # 5. Счетчик полуходов и номер хода
+        halfmove_fen = str(self.board.halfmove_clock)
+        fullmove_fen = str(self.board.fullmove_number)
+
+        return f"{board_fen} {turn_fen} {castling_fen} {en_passant_fen} {halfmove_fen} {fullmove_fen}"

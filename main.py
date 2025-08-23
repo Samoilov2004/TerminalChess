@@ -3,6 +3,7 @@
 import os
 import json
 import time
+from src.ai_player import AIPlayer
 
 from src.board import ChessBoard
 from src.game import Game 
@@ -158,6 +159,57 @@ def play_human_vs_human():
                 game.undo_move()
                 continue
 
+def play_vs_ai():
+    """Запускает игру Человек против ИИ."""
+    ai_player = AIPlayer(skill_level=5) # Уровень сложности от 0 до 20
+    if not ai_player.engine:
+        time.sleep(3)
+        return
+
+    # Выбор цвета игроком
+    player_color = None
+    while player_color not in ['w', 'b']:
+        choice = input("За кого вы хотите играть? (w/белые, b/черные): ").strip().lower()
+        if choice in ['w', 'white', 'белые']:
+            player_color = 'white'
+        elif choice in ['b', 'black', 'черные']:
+            player_color = 'black'
+
+    game = Game()
+    
+    try:
+        while game.status == "ongoing":
+            clear_screen()
+            should_flip = (player_color == 'black' and settings['flip_board'])
+            print(game.board.get_board_string(flip=should_flip))
+            
+            if game.board.turn == player_color:
+                # Ход человека
+                player_name = T('white_player') if player_color == 'white' else T('black_player')
+                move_str = input(f"\n{T('player_turn', player=player_name)}").strip().lower()
+                if move_str in ['exit', 'quit']: break
+                if not game.make_move(move_str):
+                    print(f"\n{T('illegal_move')}"); time.sleep(2)
+            else:
+                # Ход ИИ
+                print("\nИИ думает...")
+                fen = game.board.to_fen()
+                ai_move = ai_player.get_best_move(fen, time_limit=0.5)
+                if ai_move:
+                    print(f"ИИ делает ход: {ai_move}")
+                    game.make_move(ai_move)
+                    time.sleep(2)
+                else:
+                    print("ИИ не смог сделать ход.")
+                    break
+        
+        # Вывод результата игры (после цикла)
+        # ... (здесь ваш код для вывода статуса checkmate, draw и т.д.) ...
+
+    finally:
+        # ОБЯЗАТЕЛЬНО закрываем процесс движка, даже если была ошибка
+        ai_player.quit()
+
 
 def main_menu():
     """Отображает главное меню и обрабатывает выбор пользователя."""
@@ -182,7 +234,10 @@ def main_menu():
         if choice == '1':
             play_human_vs_human()
             input(T('back_to_menu'))
-        elif choice in ['2', '3']:
+        elif choice == '2':
+            play_vs_ai()
+            input(T('back_to_menu'))
+        elif choice == '3':
             show_dev_notice()
         elif choice == '4':
             settings_menu()
