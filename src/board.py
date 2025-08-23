@@ -9,6 +9,9 @@ class ChessBoard:
     и другие состояния игры в соответствии с правилами FIDE.
     """
     def __init__(self):
+        """
+        Инициализирует доску в стандартном начальном положении.
+        """
         self.board = [
             ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
             ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
@@ -103,7 +106,14 @@ class ChessBoard:
         return False
     
     def is_in_check(self, color):
-        """Проверяет, находится ли король указанного цвета под шахом."""
+        """
+        Проверяет, находится ли король указанного цвета под шахом.
+
+        :param color: Цвет короля для проверки ('white' или 'black').
+        :type color: str
+        :return: True, если король атакован, иначе False.
+        :rtype: bool
+        """
         king_char = 'K' if color == 'white' else 'k'
         king_pos = None
         for r in range(8):
@@ -120,7 +130,14 @@ class ChessBoard:
 
     def get_legal_moves(self):
         """
-        Возвращает список всех легальных ходов для текущего игрока.
+        Генерирует список всех легальных ходов для текущего игрока.
+
+        Ход считается легальным, если он соответствует правилам движения фигуры
+        и не оставляет своего короля под шахом.
+
+        :return: Список легальных ходов. Каждый ход представлен в формате
+                 ((from_row, from_col), (to_row, to_col)).
+        :rtype: list[tuple[tuple[int, int], tuple[int, int]]]
         """
         legal_moves = []
         pseudo_legal_moves = self._generate_pseudo_legal_moves()
@@ -248,6 +265,15 @@ class ChessBoard:
     def make_move(self, move_str):
         """
         Проверяет и выполняет ход, заданный в алгебраической нотации.
+
+        Пример нотации: 'e2e4', 'e7e8q' (превращение пешки в ферзя).
+        Если ход легален, состояние доски изменяется и ход передается
+        другому игроку. В противном случае, состояние доски не меняется.
+
+        :param move_str: Строка, представляющая ход (например, 'e2e4').
+        :type move_str: str
+        :return: True, если ход был успешно выполнен, иначе False.
+        :rtype: bool
         """
         if len(move_str) < 4: return False
         
@@ -277,7 +303,6 @@ class ChessBoard:
         return True
 
     def _make_move_on_board(self, move, promotion_piece=None):
-        # ... тело метода без изменений ...
         from_pos, to_pos = move; from_r, from_c = from_pos; to_r, to_c = to_pos
         piece = self.board[from_r][from_c]
         if self.board[to_r][to_c] != '.' or piece.lower() == 'p': self.halfmove_clock = 0
@@ -304,6 +329,15 @@ class ChessBoard:
     def is_game_over(self):
         """
         Определяет, завершена ли игровая партия, и возвращает ее статус.
+
+        Проверяет на мат, пат и правило 50 ходов.
+
+        :return: Строка со статусом игры:
+                 'checkmate' (мат),
+                 'stalemate' (пат),
+                 'draw_50_moves' (ничья по правилу 50 ходов),
+                 'ongoing' (игра продолжается).
+        :rtype: str
         """
         if not self.get_legal_moves():
             if self.is_in_check(self.turn):
