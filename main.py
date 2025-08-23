@@ -161,58 +161,87 @@ def play_human_vs_human():
 
 def play_vs_ai():
     """Запускает игру Человек против ИИ."""
-    ai_player = AIPlayer(skill_level=5) # Уровень сложности от 0 до 20
+    # 1. Выбор сложности ИИ
+    skill_level_choice = input(T('choose_skill_level', default="Выберите сложность ИИ (0-20, стандартно 5): ")).strip()
+    skill_level = 5 # Значение по умолчанию
+    if skill_level_choice.isdigit() and 0 <= int(skill_level_choice) <= 20:
+        skill_level = int(skill_level_choice)
+
+    # 2. Инициализация ИИ-игрока
+    ai_player = AIPlayer(skill_level=skill_level)
     if not ai_player.engine:
+        # Если движок не запустился, сообщение об ошибке уже выведено в AIPlayer
         time.sleep(3)
         return
 
-    # Выбор цвета игроком
+    # 3. Выбор цвета игроком
     player_color = None
-    while player_color not in ['white', 'black']: # Условие теперь тоже проверяет полные названия
-        # Используем функцию T() для локализации подсказки
-        prompt = T('choose_color_prompt', default="За кого вы хотите играть? (w/белые, b/черные): ")
+    while player_color not in ['white', 'black']:
+        prompt = T('choose_color_prompt', default="За кого вы хотите играть? (б/белые или ч/черные): ")
         choice = input(prompt).strip().lower()
-
-        # --- НАЧАЛО ИСПРАВЛЕНИЙ ---
         if choice in ['w', 'white', 'белые', 'б']:
             player_color = 'white'
         elif choice in ['b', 'black', 'черные', 'ч']:
             player_color = 'black'
-        # --- КОНЕЦ ИСПРАВЛЕНИЙ ---
 
+    # 4. Инициализация игры
     game = Game()
     
     try:
+        # 5. Основной игровой цикл
         while game.status == "ongoing":
             clear_screen()
             should_flip = (player_color == 'black' and settings['flip_board'])
             print(game.board.get_board_string(flip=should_flip))
-            
-            if game.board.turn == player_color:
-                # Ход человека
-                player_name = T('white_player') if player_color == 'white' else T('black_player')
+
+            # Определяем, чей сейчас ход
+            is_human_turn = (game.board.turn == player_color)
+
+            if is_human_turn:
+                # --- Ход Человека ---
+                player_name = T(player_color + '_player')
                 move_str = input(f"\n{T('player_turn', player=player_name)}").strip().lower()
-                if move_str in ['exit', 'quit']: break
+                
+                if move_str in ['exit', 'quit']:
+                    print(T('goodbye'))
+                    break
+                
                 if not game.make_move(move_str):
-                    print(f"\n{T('illegal_move')}"); time.sleep(2)
+                    print(f"\n{T('illegal_move')}")
+                    time.sleep(2)
             else:
-                # Ход ИИ
-                print("\nИИ думает...")
+                # --- Ход ИИ ---
+                print(f"\n{T('ai_thinking', default='ИИ думает...')}")
+                
                 fen = game.board.to_fen()
                 ai_move = ai_player.get_best_move(fen, time_limit=0.5)
+                
                 if ai_move:
-                    print(f"ИИ делает ход: {ai_move}")
+                    print(f"{T('ai_makes_move', default='ИИ делает ход')}: {ai_move}")
                     game.make_move(ai_move)
-                    time.sleep(2)
+                    time.sleep(1.5) # Пауза, чтобы игрок успел увидеть ход ИИ
                 else:
-                    print("ИИ не смог сделать ход.")
+                    print(f"\n{T('ai_error', default='ИИ не смог сделать ход. Игра прервана.')}")
                     break
         
-        # Вывод результата игры (после цикла)
-        # ... (здесь ваш код для вывода статуса checkmate, draw и т.д.) ...
+        # 6. Вывод результата после окончания цикла
+        clear_screen()
+        final_flip = (player_color == 'black' and settings['flip_board'])
+        print(game.board.get_board_string(flip=final_flip))
+        print(f"\n{T('game_over_title')}")
+        
+        if game.status == "checkmate":
+            # Если игра закончилась матом, победитель - тот, кто НЕ должен ходить сейчас
+            winner_color = "black" if game.board.turn == "white" else "white"
+            winner_name_key = winner_color + '_player'
+            print(T('checkmate', winner=T(winner_name_key)))
+        else:
+            # Для всех видов ничьей (stalemate, draw_repetition и т.д.)
+            # Мы используем ключ, который хранится в game.status
+            print(T(game.status, default=f"Ничья ({game.status})"))
 
     finally:
-        # ОБЯЗАТЕЛЬНО закрываем процесс движка, даже если была ошибка
+        # 7. ОБЯЗАТЕЛЬНО корректно завершаем работу движка
         ai_player.quit()
 
 

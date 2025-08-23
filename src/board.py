@@ -157,22 +157,22 @@ class ChessBoard:
 
     def get_legal_moves(self):
         """
-        Генерирует список всех легальных ходов для текущего игрока.
-
-        Ход считается легальным, если он соответствует правилам движения фигуры
-        и не оставляет своего короля под шахом.
-
-        :return: Список легальных ходов. Каждый ход представлен в формате
-                 ((from_row, from_col), (to_row, to_col)).
-        :rtype: list[tuple[tuple[int, int], tuple[int, int]]]
+        Возвращает список всех легальных ходов для текущего игрока.
+        Использует deepcopy для безопасной проверки ходов.
         """
         legal_moves = []
+        # Сначала генерируем все ходы, которые фигура может сделать в принципе
         pseudo_legal_moves = self._generate_pseudo_legal_moves()
 
         for move in pseudo_legal_moves:
+            # Создаем ПОЛНУЮ, ГЛУБОКУЮ КОПИЮ доски для симуляции хода
             temp_board = copy.deepcopy(self)
+            
+            # Делаем ход на временной доске
             temp_board._make_move_on_board(move)
             
+            # Проверяем, не оказался ли НАШ король под шахом ПОСЛЕ хода
+            # `self.turn`, потому что внутри temp_board ход уже сменился, а нам нужен цвет того, кто ходил
             if not temp_board.is_in_check(self.turn):
                 legal_moves.append(move)
         
@@ -404,32 +404,42 @@ class ChessBoard:
 
     def get_board_string(self, flip=False):
         """
-        Возвращает строковое представление доски.
+        Возвращает строковое представление доски с правильным выравниванием.
         :param flip: Если True, доска будет перевернута (для игры за черных).
         """
+        board_str = ""
+        
+        # --- 1. Определяем порядок файлов и рядов ---
         if flip:
-            # Если доска перевернута, ряды идут от 1 до 8, а файлы - от h до a
-            ranks = range(8) # 0..7 -> 1..8
-            files = "h g f e d c b a"
-            board_view = [row[::-1] for row in self.board[::-1]] # Переворачиваем и доску, и каждый ряд
+            # Для черных: файлы h-a, ряды 1-8 (смотрим "снизу вверх" по выводу в консоль)
+            files = " h g f e d c b a"
+            rank_indices = range(7, -1, -1) # Сначала 8-я, потом 7-я... Вывод начнется с 1-го ряда.
         else:
-            # Стандартный вид
-            ranks = range(7, -1, -1) # 7..0 -> 8..1
-            files = "a b c d e f g h"
-            board_view = self.board
+            # Для белых: файлы a-h, ряды 8-1
+            files = " a b c d e f g h"
+            rank_indices = range(8) # Сначала 1-я, потом 2-я... Вывод начнется с 8-го ряда.
 
+        # --- 2. Формируем "шапку" доски ---
         header = f'   {files}'
         separator = '  +-----------------+'
+        
+        board_str += header + "\n" + separator + "\n"
 
-        board_str = header + "\n" + separator + "\n"
-
-        for r_index in ranks: # Итерируемся по индексам рядов в нужном порядке
-            rank_number = r_index + 1
-            row_content = " ".join(board_view[r_index])
+        # --- 3. Рисуем доску, ряд за рядом ---
+        for r in rank_indices:
+            rank_number = 8 - r if not flip else r + 1
+            
+            # Собираем содержимое ряда в нужном порядке
+            row_list = self.board[r]
+            if flip:
+                row_list = row_list[::-1] # Переворачиваем ряд h -> a
+            
+            row_content = " ".join(row_list)
             board_str += f"{rank_number} | {row_content} | {rank_number}\n"
             
+        # --- 4. Формируем "подвал" и информацию об игре ---
         board_str += separator + "\n" + header + "\n"
-
+        
         turn_color = "White" if self.turn == 'white' else "Black"
         board_str += f"\nTurn: {self.fullmove_number}. {turn_color} to move.\n"
 
@@ -532,6 +542,50 @@ class ChessBoard:
 
         # Во всех остальных случаях (например, слон + конь) мат возможен.
         return False
+
+    def undo_move(self):
+        """Отменяет последний сделанный ход."""
+        if not self.move_history:
+            return False
+
+        last_state = self.move_history.pop()
+
+        # Восстанавливаем все ключевые переменные
+        self.turn = last_state['turn']
+        self.castling_rights = last_state['castling_rights']
+        self.en_passant_target = last_state['en_passant_target']
+        self.halfmove_clock = last_state['halfmove_clock']
+        
+        # Если отменяем ход белых, номер полного хода тоже нужно откатить
+        if self.turn == 'black':
+             self.fullmove_number -=1
+
+        # Возвращаем фигуры на место
+        from_pos, to_pos = last_state['move']
+        self.board[from_pos[0]][from_pos[1]] = last_state['piece_moved']
+        self.board[to_pos[0]][to_pos[1]] = last_state['piece_captured']
+
+        # Особый случай: отмена взятия на проходе
+        if last_state['piece_moved'].lower() == 'p' and \
+           to_pos == last_state['en_passant_target'] and \
+           last_state['piece_captured'] == '.':
+            # Возвращаем вражескую пешку на место
+            captured_pawn_row = from_pos[0]
+            captured_pawn_col = to_pos[1]
+            captured_pawn_char = 'p' if self.turn == 'white' else 'P'
+            self.board[captured_pawn_row][captured_pawn_col] = captured_pawn_char
+        
+        # Особый случай: отмена рокировки
+        if last_state['piece_moved'].lower() == 'k' and abs(from_pos[1] - to_pos[1]) == 2:
+            if to_pos[1] > from_pos[1]: # Короткая
+                rook_from, rook_to = (from_pos[0], 5), (from_pos[0], 7)
+            else: # Длинная
+                rook_from, rook_to = (from_pos[0], 3), (from_pos[0], 0)
+            # Возвращаем ладью
+            self.board[rook_to[0]][rook_to[1]] = self.board[rook_from[0]][rook_from[1]]
+            self.board[rook_from[0]][rook_from[1]] = '.'
+
+        return True
 
     def to_fen(self):
         """Конвертирует текущее состояние доски в стандартную нотацию FEN."""
