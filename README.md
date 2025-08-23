@@ -26,9 +26,8 @@
 Откройте терминал или командную строку и выполните:
 ```bash
 git clone https://github.com/Samoilov2004/Chess_Assistant.git
-cd Chess_Assistant
+cd ./Chess_Assistant
 ```
-*(Замените URL на адрес вашего репозитория на GitHub)*
 
 ### 3. Установка зависимостей
 

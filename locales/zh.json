@@ -1,14 +1,14 @@
 {
-    "lang_name_flag": "中文 🇨🇳 ",
+    "lang_name_flag": "中文 🇨🇳",
     "welcome_title": "欢迎来到控制台国际象棋！",
     "welcome_rules": "输入走法规则：",
     "welcome_format": "  - 格式: <起点><终点>, 例如: e2e4。",
     "welcome_promo": "  - 兵升变: e7e8q (升变为后)。",
-    "welcome_exit": "输入 'exit' 或 'quit' 可随时退出。",
+    "welcome_exit": "输入 'exit' 或 'quit' 可退出。",
     "press_enter": "按 Enter 继续...",
     "menu_title": "========== 国际象棋主菜单 ==========",
     "menu_play_hvh": "1. 双人对战",
-    "menu_play_ai": "2. 对战 AI",
+    "menu_play_stockfish": "2. 对战 Stockfish",
     "menu_analysis": "3. 分析模式 (含 AI 对局)",
     "menu_settings": "4. 设置",
     "menu_exit": "5. 退出",
@@ -29,6 +29,18 @@
     "player_turn": "{player} 回合: ",
     "illegal_move": "!!! 无效或不合法的移动，请重试。 !!!",
     "goodbye": "再见！",
-    "input_prompt": "请输入选择: "
+    "input_prompt": "请输入选择: ",
+    "draw_repetition": "和棋: 三次重复局面",
+    "draw_insufficient_material": "结果: 和棋 (子力不足)。",
+    "settings_confirm_move": "2. 移动确认 (当前: {status})",
+    "confirm_prompt": "确认移动? (y/是 或 n/否): ",
+    "settings_flip_board": "3. 黑方翻转棋盘 (当前: {status})",
+    "settings_auto_queen": "4. 自动升变皇后 (当前: {status})",
+    "status_on": "开",
+    "status_off": "关",
+    "choose_color_prompt": "选择执方? (b/白方 或 h/黑方): ",
+    "choose_skill_level": "AI 难度 (0-20, 默认 5): ",
+    "ai_thinking": "AI 思考中...",
+    "ai_makes_move": "AI 走子",
+    "ai_error": "AI 无法走子。游戏终止。"
 }
-
