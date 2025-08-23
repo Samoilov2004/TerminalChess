@@ -47,29 +47,36 @@ class Game:
 
     def undo_move(self):
         """
-        Отменяет последний ход, откатывая и доску, и историю позиций.
+        Отменяет последний сделанный ход.
+        Этот метод должен быть в классе Game, не в TrainingGame.
         """
+        # Проверяем, есть ли что отменять в истории доски
         if not self.board.move_history:
             return False
 
+        # --- ОТКАТ ИСТОРИИ ПОВТОРЕНИЙ ---
+        # Сначала уменьшаем счетчик текущей позиции
+        current_hash = self.board.get_position_hash()
+        if self.position_history.get(current_hash, 0) > 0:
+            self.position_history[current_hash] -= 1
+        else:
+            # Если счетчика нет, это странно, но лучше обработать
+            self.position_history.pop(current_hash, None)
+        
+        # --- ОТКАТ СЪЕДЕННЫХ ФИГУР ---
         last_captured_piece_char = self.board.move_history[-1]['piece_captured']
         if last_captured_piece_char != '.':
-            if self.board.turn == 'black': 
+            # Определяем, кто сделал отменяемый ход (противоположный текущему self.board.turn)
+            moving_player_color = 'black' if self.board.turn == 'white' else 'white'
+            if moving_player_color == 'white':
                 if self.captured_by_white and self.captured_by_white[-1] == last_captured_piece_char:
                     self.captured_by_white.pop()
             else:
                 if self.captured_by_black and self.captured_by_black[-1] == last_captured_piece_char:
                     self.captured_by_black.pop()
         
-        current_hash = self.board.get_position_hash()
-        if self.position_history.get(current_hash, 0) > 0:
-            self.position_history[current_hash] -= 1
-        
-        return self.board.undo_move()
-        current_hash = self.board.get_position_hash()
-        if self.position_history[current_hash] > 0:
-            self.position_history[current_hash] -= 1
-        
+        # --- ОТКАТ САМОЙ ДОСКИ ---
+        # Делегируем это доске, у которой есть вся низкоуровневая информация
         return self.board.undo_move()
 
     def _check_game_over(self):

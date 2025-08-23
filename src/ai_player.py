@@ -52,6 +52,49 @@ class AIPlayer:
             print(f"Произошла ошибка при запуске Stockfish: {e}")
             self.engine = None
 
+    def get_analysis(self, fen_string, num_lines=3, time_limit=1.0):
+        """
+        Анализирует позицию и возвращает несколько лучших ходов с оценкой.
+        :param fen_string: Позиция в формате FEN.
+        :param num_lines: Количество лучших ходов для возврата.
+        :param time_limit: Время на анализ.
+        :return: Список словарей [{'move': 'e2e4', 'score': 0.25}, ...], или None.
+        """
+        if not self.engine:
+            return None
+        
+        try:
+            board = chess.Board(fen_string)
+            # multipv - это "multiple principal variations", т.е. несколько лучших линий
+            analysis = self.engine.analyse(board, chess.engine.Limit(time=time_limit), multipv=num_lines)
+            
+            top_moves = []
+            for info in analysis:
+                score_obj = info.get("score")
+                if score_obj is not None:
+                    # Преобразуем оценку в понятный формат (в пешках)
+                    # PovScore(cp=25, WHITE) -> 0.25
+                    # PovScore(cp=-50, BLACK) -> -0.50 (с точки зрения черных)
+                    # PovScore(Mate(2), WHITE) -> Мат в 2 хода
+                    
+                    if score_obj.is_mate():
+                        score_text = f"Мат в {score_obj.white().mate()}"
+                    else:
+                        # Приводим оценку к точке зрения белых
+                        score_val = score_obj.white().score() / 100.0
+                        score_text = f"{'+' if score_val > 0 else ''}{score_val:.2f}"
+                else:
+                    score_text = "N/A"
+                    
+                top_moves.append({
+                    "move": info.get("pv")[0].uci(),
+                    "score": score_text
+                })
+            return top_moves
+        except Exception as e:
+            print(f"Ошибка при анализе позиции: {e}")
+            return None
+
     def get_best_move(self, fen_string, time_limit=1.0):
         """
         Анализирует позицию и возвращает лучший ход в формате UCI ('e2e4').

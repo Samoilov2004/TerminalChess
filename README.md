@@ -106,3 +106,6 @@ python3 -m unittest discover tests
 - [ ] <captured_by_white_NOT_FOUND>: 
 - [ ] <captured_by_black_NOT_FOUND>: 
 - [ ] <turn_info_NOT_FOUND>
+- [ ] отмена не работает
+- [ ] из меню убрать ненужные выборы
+- [ ] не работает выбор только одной стороны

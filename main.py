@@ -1,12 +1,11 @@
-# main.py
-
 import os
 import json
 import time
-from src.ai_player import AIPlayer
 
+from src.ai_player import AIPlayer
 from src.board import ChessBoard
 from src.game import Game 
+from src.training_game import TrainingGame
 
 # --- КОНФИГУРАЦИЯ ---
 LOCALES_DIR = 'locales'
@@ -348,6 +347,88 @@ def play_vs_stockfish():
         # 7. ОБЯЗАТЕЛЬНО корректно завершаем работу движка
         ai_player.quit()
 
+def play_training_game():
+    """Запускает тренировочную игру с подсказками, выбором цвета и отменой хода."""
+    print(f"\n{T('loading_engine', default='Загрузка аналитического движка...')}")
+    game = TrainingGame(ai_skill_level=20) # Используем максимальную силу для лучших подсказок
+    if not game.analyzer:
+        time.sleep(3)
+        return
+        
+    # --- НОВОЕ: ВЫБОР ЦВЕТА ИГРОКОМ ---
+    player_color = None
+    while player_color not in ['white', 'black', 'both']:
+        prompt = T('training_choose_color', default="За кого играть? (б/белые, ч/черные, о/обе стороны): ")
+        choice = input(prompt).strip().lower()
+        if choice in ['w', 'white', 'белые', 'б']:
+            player_color = 'white'
+        elif choice in ['b', 'black', 'черные', 'ч']:
+            player_color = 'black'
+        elif choice in ['o', 'both', 'обе', 'о']:
+            player_color = 'both' # Специальный режим, где вы играете за обе стороны
+
+    try:
+        while game.status == "ongoing":
+            clear_screen()
+            
+            # Определяем, нужно ли переворачивать доску
+            should_flip = (game.board.turn == 'black' and settings['flip_board'] and player_color != 'white')
+            draw_board(game, flip=should_flip)
+            
+            # Проверяем конец игры перед показом подсказок
+            if game.status != "ongoing":
+                break
+
+            # --- Показываем лучшие ходы ---
+            print(f"\n{T('best_moves_header', default='--- Лучшие ходы по версии ИИ ---')}")
+            top_moves = game.get_top_moves(num_moves=3)
+            if top_moves:
+                for i, move_info in enumerate(top_moves):
+                    # Вывод: 1. e2e4    (Оценка: +0.25)
+                    print(f"  {i+1}. {move_info['move']:<8} ({T('evaluation', default='Оценка')}: {move_info['score']})")
+            else:
+                print(T('analysis_unavailable', default='Анализ временно недоступен.'))
+            print("-" * 35)
+            
+            # --- НОВОЕ: ПОНЯТНЫЙ ЗАПРОС НА ВВОД ---
+            current_player_name = T(game.board.turn + '_player')
+            prompt = T('training_prompt', 
+                       default="\nХод {player}. Введите ход, 'undo' (отмена), 'exit' (выход): ", 
+                       player=current_player_name)
+            
+            move_str = input(prompt).strip().lower()
+
+            if move_str in ['exit', 'quit']:
+                break
+            
+            # --- НОВОЕ: РЕАЛИЗАЦИЯ ОТМЕНЫ ХОДА ---
+            if move_str == 'undo':
+                if game.undo_move():
+                    print(f"\n{T('undo_success', default='Ход отменен.')}")
+                else:
+                    print(f"\n{T('undo_fail', default='Нечего отменять.')}")
+                time.sleep(1.5)
+                continue # Пропускаем остаток цикла и перерисовываем доску
+
+            # --- НОВОЕ: Проверяем, может ли игрок ходить за текущий цвет ---
+            if player_color != 'both' and game.board.turn != player_color:
+                print(f"\n{T('not_your_turn', default='Сейчас не ваш ход!')}")
+                time.sleep(1.5)
+                continue
+                
+            # Делаем ход
+            if not game.make_move(move_str):
+                print(f"\n{T('illegal_move')}")
+                time.sleep(2)
+        
+        # --- Вывод результата игры (без изменений) ---
+        clear_screen()
+        # ... (здесь ваш код вывода результата) ...
+    
+    finally:
+        # Корректно завершаем работу движка
+        game.shutdown_analyzer()
+
 
 def main_menu():
     """Отображает главное меню и обрабатывает выбор пользователя."""
@@ -376,7 +457,8 @@ def main_menu():
             play_vs_stockfish()
             input(T('back_to_menu'))
         elif choice == '3':
-            show_dev_notice()
+            play_training_game()
+            input(T('back_to_menu'))
         elif choice == '4':
             settings_menu()
         elif choice == '5':
