@@ -38,5 +38,6 @@
     "settings_auto_queen": "4. Авто-королева (Текущий: {status})",
     "settings_back": "5. Назад в меню",
     "status_on": "Вкл",
-    "status_off": "Выкл"
+    "status_off": "Выкл",
+    "choose_color_prompt": "За кого вы хотите играть? (б/белые или ч/черные): "
 }

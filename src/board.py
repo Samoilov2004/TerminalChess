@@ -560,17 +560,19 @@ class ChessBoard:
         
         # 3. Права на рокировку
         castling_fen = ""
-        if self.castling_rights['white']['kingside']: castling_fen += 'K'
-        if self.castling_rights['white']['queenside']: castling_fen += 'Q'
-        if self.castling_rights['black']['kingside']: castling_fen += 'k'
-        if self.castling_rights['black']['queenside']: castling_fen += 'q'
+        if self.castling_rights.get('white', {}).get('kingside'): castling_fen += 'K'
+        if self.castling_rights.get('white', {}).get('queenside'): castling_fen += 'Q'
+        if self.castling_rights.get('black', {}).get('kingside'): castling_fen += 'k'
+        if self.castling_rights.get('black', {}).get('queenside'): castling_fen += 'q'
         if not castling_fen: castling_fen = '-'
             
         # 4. Возможность взятия на проходе
         en_passant_fen = self._to_algebraic(self.en_passant_target) if self.en_passant_target else '-'
             
+        # --- НАЧАЛО ИСПРАВЛЕНИЯ ---
         # 5. Счетчик полуходов и номер хода
-        halfmove_fen = str(self.board.halfmove_clock)
-        fullmove_fen = str(self.board.fullmove_number)
+        halfmove_fen = str(self.halfmove_clock)
+        fullmove_fen = str(self.fullmove_number)
+        # --- КОНЕЦ ИСПРАВЛЕНИЯ ---
 
         return f"{board_fen} {turn_fen} {castling_fen} {en_passant_fen} {halfmove_fen} {fullmove_fen}"

@@ -168,12 +168,17 @@ def play_vs_ai():
 
     # Выбор цвета игроком
     player_color = None
-    while player_color not in ['w', 'b']:
-        choice = input("За кого вы хотите играть? (w/белые, b/черные): ").strip().lower()
-        if choice in ['w', 'white', 'белые']:
+    while player_color not in ['white', 'black']: # Условие теперь тоже проверяет полные названия
+        # Используем функцию T() для локализации подсказки
+        prompt = T('choose_color_prompt', default="За кого вы хотите играть? (w/белые, b/черные): ")
+        choice = input(prompt).strip().lower()
+
+        # --- НАЧАЛО ИСПРАВЛЕНИЙ ---
+        if choice in ['w', 'white', 'белые', 'б']:
             player_color = 'white'
-        elif choice in ['b', 'black', 'черные']:
+        elif choice in ['b', 'black', 'черные', 'ч']:
             player_color = 'black'
+        # --- КОНЕЦ ИСПРАВЛЕНИЙ ---
 
     game = Game()
     
