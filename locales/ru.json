@@ -8,7 +8,7 @@
     "press_enter": "Нажмите Enter, чтобы продолжить...",
     "menu_title": "======== ГЛАВНОЕ МЕНЮ ШАХМАТ ========",
     "menu_play_hvh": "1. Играть (Человек vs Человек)",
-    "menu_play_ai": "2. Играть против ИИ",
+    "menu_play_stockfish": "2. Играть против Stockfish",
     "menu_analysis": "3. Режим анализа (при игре с ИИ)",
     "menu_settings": "4. Настройки",
     "menu_exit": "5. Выход",

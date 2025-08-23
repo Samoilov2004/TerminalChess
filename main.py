@@ -159,7 +159,7 @@ def play_human_vs_human():
                 game.undo_move()
                 continue
 
-def play_vs_ai():
+def play_vs_stockfish():
     """Запускает игру Человек против ИИ."""
     # 1. Выбор сложности ИИ
     skill_level_choice = input(T('choose_skill_level', default="Выберите сложность ИИ (0-20, стандартно 5): ")).strip()
@@ -257,7 +257,7 @@ def main_menu():
         clear_screen()
         print(T("menu_title"))
         print(T("menu_play_hvh"))
-        print(T("menu_play_ai"))
+        print(T("menu_play_stockfish"))
         print(T("menu_analysis"))
         print(T("menu_settings"))
         print(T("menu_exit"))
@@ -269,7 +269,7 @@ def main_menu():
             play_human_vs_human()
             input(T('back_to_menu'))
         elif choice == '2':
-            play_vs_ai()
+            play_vs_stockfish()
             input(T('back_to_menu'))
         elif choice == '3':
             show_dev_notice()
