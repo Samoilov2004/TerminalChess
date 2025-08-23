@@ -17,7 +17,6 @@
     "back_to_menu": "\nPress Enter to return to main menu...",
     "settings_title": "============ SETTINGS ============",
     "settings_lang": "1. Language (Current: {lang_name})",
-    "settings_back": "5. Back to menu",
     "lang_choice_prompt": "Choose language: ",
     "game_over_title": "================== GAME OVER ==================",
     "checkmate": "Result: Checkmate! {winner} wins.",
@@ -32,10 +31,7 @@
     "input_prompt": "Your choice: ",
     "draw_repetition": "Draw: Threefold repetition",
     "draw_insufficient_material": "Result: Draw (Insufficient material).",
-    "settings_confirm_move": "2. Move confirmation (Current: {status})",
     "confirm_prompt": "Confirm move? (y/yes or n/no): ",
-    "settings_flip_board": "3. Flip board for Black (Current: {status})",
-    "settings_auto_queen": "4. Auto-queen (Current: {status})",
     "status_on": "On",
     "status_off": "Off",
     "choose_color_prompt": "Which side do you want to play? (w/white or b/black): ",
@@ -43,9 +39,28 @@
     "ai_thinking": "AI thinking...",
     "ai_makes_move": "AI makes move",
     "ai_error": "AI failed to make a move. Game aborted.",
-    "settings_piece_style": "5. Piece Style (Current: {style})",
     "style_classic": "Classic",
     "style_unicode": "Unicode",
-    "settings_back": "6. Back to menu"
+    "section_appearance": "\n--- Appearance ---",
+    "section_gameplay": "\n--- Gameplay & Help ---",
+    "section_divider": "---",
+
+    "settings_piece_style": "2. Piece Style ({style})",
+    "style_classic": "Classic",
+    "style_unicode": "Unicode",
+
+    "settings_flip_board": "3. Flip Board for Black ({status})",
+    "settings_highlight_last_move": "4. Highlight Last Move ({status})",
+    "settings_show_captured_pieces": "5. Show Captured Pieces ({status})",
+
+    "settings_confirm_move": "6. Confirm Move ({status})",
+    "settings_auto_queen": "7. Auto-Queen ({status})",
+    "settings_allow_hints": "8. Allow AI Hints ({status})",
+    "settings_allow_undo": "9. Allow Undo ({status})",
+    
+    "settings_back": "10. Back to Main Menu",
+    
+    "status_on": "On",
+    "status_off": "Off"
 }
 

@@ -11,11 +11,18 @@ from src.game import Game
 # --- КОНФИГУРАЦИЯ ---
 LOCALES_DIR = 'locales'
 settings = {
+    # Общие
     'lang': 'ru',
-    'confirm_move': False,
-    'flip_board': False,
+    # Внешний вид
+    'piece_style': 'unicode',
+    'flip_board': True,
+    'highlight_last_move': True,     # Новая настройка
+    'show_captured_pieces': False,  # Новая настройка
+    # Игровой процесс и Помощь
+    'confirm_move': True,
     'auto_queen': False,
-    'piece_style': 'unicode'
+    'allow_hints': True,             # Новая настройка
+    'allow_undo': True               # Новая настройка
 }
 
 PIECE_SETS = {
@@ -141,28 +148,46 @@ def draw_board(board_obj, flip=False):
     print(board_str)
 
 def settings_menu():
-    """Меню для изменения всех настроек."""
+    """Меню для изменения всех настроек игры."""
     while True:
         clear_screen()
         
-        # Получаем статусы всех настроек для отображения
+        # --- Собираем статусы для всех настроек ---
         lang_name = T("lang_name_flag")
-        confirm_status = T("status_on") if settings['confirm_move'] else T("status_off")
-        flip_status = T("status_on") if settings['flip_board'] else T("status_off")
-        auto_queen_status = T("status_on") if settings['auto_queen'] else T("status_off")
+        
         style_name = T(f"style_{settings['piece_style']}")
+        flip_status = T("status_on") if settings['flip_board'] else T("status_off")
+        highlight_status = T("status_on") if settings['highlight_last_move'] else T("status_off")
+        captured_status = T("status_on") if settings['show_captured_pieces'] else T("status_off")
 
+        confirm_status = T("status_on") if settings['confirm_move'] else T("status_off")
+        auto_queen_status = T("status_on") if settings['auto_queen'] else T("status_off")
+        hints_status = T("status_on") if settings['allow_hints'] else T("status_off")
+        undo_status = T("status_on") if settings['allow_undo'] else T("status_off")
+
+        # --- Выводим красивое меню ---
         print(T("settings_title"))
         print(T("settings_lang", lang_name=lang_name))
-        print(T("settings_confirm_move", status=confirm_status)) # Убедитесь, что этот ключ есть в JSON
-        print(T("settings_flip_board", status=flip_status))
-        print(T("settings_auto_queen", status=auto_queen_status))
+        
+        print(T("section_appearance"))
         print(T("settings_piece_style", style=style_name))
-        print(T("settings_back")) # Этот ключ должен содержать верный номер
+        print(T("settings_flip_board", status=flip_status))
+        print(T("settings_highlight_last_move", status=highlight_status))
+        print(T("settings_show_captured_pieces", status=captured_status))
+        
+        print(T("section_gameplay"))
+        print(T("settings_confirm_move", status=confirm_status))
+        print(T("settings_auto_queen", status=auto_queen_status))
+        print(T("settings_allow_hints", status=hints_status))
+        print(T("settings_allow_undo", status=undo_status))
+        
+        print(T("section_divider"))
+        print(T("settings_back"))
         print("===================================")
         
         choice = input(T('choice')).strip()
 
+        # --- Обработка выбора ---
         if choice == '1':
             # --- НАЧАЛО ИЗМЕНЕНИЙ ---
 
@@ -187,18 +212,18 @@ def settings_menu():
                     settings['lang'] = available_languages[chosen_index]
             except ValueError:
                 pass # Игнорируем нечисловой ввод
-        elif choice == '2': # Подтверждение хода
-            settings['confirm_move'] = not settings['confirm_move']
-        elif choice == '3': # Переворот доски
-            settings['flip_board'] = not settings['flip_board']
-        elif choice == '4': # Авто-королева
-            settings['auto_queen'] = not settings['auto_queen']
-        if choice == '5': # Стиль фигур
-            if settings['piece_style'] == 'classic':
-                settings['piece_style'] = 'unicode'
-            else:
-                settings['piece_style'] = 'classic'
-        elif choice == '6': # Назад
+        
+        # Переключатели (просто меняем True на False и наоборот)
+        elif choice == '2': settings['piece_style'] = 'unicode' if settings['piece_style'] == 'classic' else 'classic'
+        elif choice == '3': settings['flip_board'] = not settings['flip_board']
+        elif choice == '4': settings['highlight_last_move'] = not settings['highlight_last_move']
+        elif choice == '5': settings['show_captured_pieces'] = not settings['show_captured_pieces']
+        elif choice == '6': settings['confirm_move'] = not settings['confirm_move']
+        elif choice == '7': settings['auto_queen'] = not settings['auto_queen']
+        elif choice == '8': settings['allow_hints'] = not settings['allow_hints']
+        elif choice == '9': settings['allow_undo'] = not settings['allow_undo']
+        
+        elif choice == '10': # Выход из настроек
             break
 
 def play_human_vs_human():

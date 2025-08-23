@@ -32,11 +32,7 @@
     "input_prompt": "Ваш выбор: ",
     "draw_repetition": "Ничья: троекратное повторение позиции",
     "draw_insufficient_material":"Результат: Ничья (Недостаточно материала).",
-    "settings_confirm_move": "2. Подтверждение хода (Текущий: {status})",
     "confirm_prompt": "Подтвердить ход? (y/да или n/нет): ",
-    "settings_flip_board": "3. Переворот доски за черных (Текущий: {status})",
-    "settings_auto_queen": "4. Авто-королева (Текущий: {status})",
-    "settings_back": "5. Назад в меню",
     "status_on": "Вкл",
     "status_off": "Выкл",
     "choose_color_prompt": "За кого вы хотите играть? (б/белые или ч/черные): ",
@@ -48,5 +44,25 @@
     "settings_piece_style": "5. Стиль фигур (Текущий: {style})",
     "style_classic": "Классический",
     "style_unicode": "Unicode",
-    "settings_back": "6. Назад в меню"
+    "section_appearance": "\n--- Внешний вид ---",
+    "section_gameplay": "\n--- Игровой процесс и Помощь ---",
+    "section_divider": "---",
+    
+    "settings_piece_style": "2. Стиль фигур ({style})",
+    "style_classic": "Классический",
+    "style_unicode": "Unicode",
+    
+    "settings_flip_board": "3. Переворот доски ({status})",
+    "settings_highlight_last_move": "4. Подсветка последнего хода ({status})",
+    "settings_show_captured_pieces": "5. Показывать съеденные фигуры ({status})",
+
+    "settings_confirm_move": "6. Подтверждение хода ({status})",
+    "settings_auto_queen": "7. Авто-королева ({status})",
+    "settings_allow_hints": "8. Разрешить подсказки ИИ ({status})",
+    "settings_allow_undo": "9. Разрешить отмену хода ({status})",
+    
+    "settings_back": "10. Назад в главное меню",
+
+    "status_on": "Вкл",
+    "status_off": "Выкл"
 }
