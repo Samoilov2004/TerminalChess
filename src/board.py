@@ -46,10 +46,16 @@ class ChessBoard:
         return 'white' if piece.isupper() else 'black'
 
     def _parse_pos(self, pos_str):
-        if not isinstance(pos_str, str) or len(pos_str) != 2: return None
+        if not pos_str or len(pos_str) != 2:
+            return None
+
+        if not ('a' <= pos_str[0] <= 'h' and '1' <= pos_str[1] <= '8'):
+            return None
+
         col = ord(pos_str[0]) - ord('a')
         row = 8 - int(pos_str[1])
-        if 0 <= row < 8 and 0 <= col < 8: return row, col
+        if 0 <= row < 8 and 0 <= col < 8:
+            return row, col
         return None
 
     def _to_algebraic(self, pos):

@@ -21,12 +21,20 @@ class Game:
     def make_move(self, move_str):
         """
         Пытается сделать ход. Если успешно, обновляет историю и статус игры.
+        Надежная версия с проверкой ввода.
         """
+        # --- НАЧАЛО ИСПРАВЛЕНИЙ ---
+        if not isinstance(move_str, str) or len(move_str) < 4:
+            return False # Сразу отклоняем некорректный ввод
+
         from_pos = self.board._parse_pos(move_str[:2])
         to_pos = self.board._parse_pos(move_str[2:4])
-        if not from_pos or not to_pos:
+
+        # Если парсинг не удался, ход нелегален
+        if from_pos is None or to_pos is None:
             return False
-        
+        # --- КОНЕЦ ИСПРАВЛЕНИЙ ---
+
         piece_captured = self.board.get_piece_at(to_pos)
         
         success = self.board.make_move(move_str)
@@ -35,9 +43,8 @@ class Game:
             if piece_captured != '.':
                 if self.board.turn == 'black':
                     self.captured_by_white.append(piece_captured)
-                else: 
+                else:
                     self.captured_by_black.append(piece_captured)
-            
             
             new_position_hash = self.board.get_position_hash()
             self._update_history(new_position_hash)

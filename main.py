@@ -150,23 +150,19 @@ def draw_board(game_obj, flip=False):
 
 
 def settings_menu():
-    """Меню для изменения всех настроек игры."""
+    """Меню для изменения настроек игры."""
     while True:
         clear_screen()
         
         # --- Собираем статусы для всех настроек ---
         lang_name = T("lang_name_flag")
-        
         style_name = T(f"style_{settings['piece_style']}")
         flip_status = T("status_on") if settings['flip_board'] else T("status_off")
         highlight_status = T("status_on") if settings['highlight_last_move'] else T("status_off")
         captured_status = T("status_on") if settings['show_captured_pieces'] else T("status_off")
-
         confirm_status = T("status_on") if settings['confirm_move'] else T("status_off")
         auto_queen_status = T("status_on") if settings['auto_queen'] else T("status_off")
-        hints_status = T("status_on") if settings['allow_hints'] else T("status_off")
-        undo_status = T("status_on") if settings['allow_undo'] else T("status_off")
-
+        
         # --- Выводим красивое меню ---
         print(T("settings_title"))
         print(T("settings_lang", lang_name=lang_name))
@@ -180,40 +176,29 @@ def settings_menu():
         print(T("section_gameplay"))
         print(T("settings_confirm_move", status=confirm_status))
         print(T("settings_auto_queen", status=auto_queen_status))
-        print(T("settings_allow_hints", status=hints_status))
-        print(T("settings_allow_undo", status=undo_status))
         
-        print(T("section_divider"))
-        print(T("settings_back"))
+        print()
+        print(T("settings_back")) # Пункт "Назад"
         print("===================================")
         
         choice = input(T('choice')).strip()
 
         # --- Обработка выбора ---
-        if choice == '1':
-            # --- НАЧАЛО ИЗМЕНЕНИЙ ---
-
+        if choice == '1': # Смена языка
             clear_screen()
-            print(T("lang_choice_prompt")) # 1. Выводим заголовок
+            print(T("lang_choice_prompt"))
             print("-" * 20)
-            
-            # 2. В цикле выводим каждый язык на новой строке
             for i, lang_code in enumerate(available_languages, 1):
                 lang_name_with_flag = loaded_texts.get(lang_code, {}).get("lang_name_flag", lang_code)
                 print(f"  {i}. {lang_name_with_flag}")
-            
             print("-" * 20)
-            
-            # 3. Запрашиваем ввод у пользователя
             lang_choice = input(T('input_prompt')).strip()
-            
-            # Логика обработки выбора остается прежней
             try:
                 chosen_index = int(lang_choice) - 1
                 if 0 <= chosen_index < len(available_languages):
                     settings['lang'] = available_languages[chosen_index]
-            except ValueError:
-                pass # Игнорируем нечисловой ввод
+            except (ValueError, IndexError):
+                pass
         
         # Переключатели (просто меняем True на False и наоборот)
         elif choice == '2': settings['piece_style'] = 'unicode' if settings['piece_style'] == 'classic' else 'classic'
@@ -222,10 +207,8 @@ def settings_menu():
         elif choice == '5': settings['show_captured_pieces'] = not settings['show_captured_pieces']
         elif choice == '6': settings['confirm_move'] = not settings['confirm_move']
         elif choice == '7': settings['auto_queen'] = not settings['auto_queen']
-        elif choice == '8': settings['allow_hints'] = not settings['allow_hints']
-        elif choice == '9': settings['allow_undo'] = not settings['allow_undo']
         
-        elif choice == '10': # Выход из настроек
+        elif choice == '8': # Выход из настроек
             break
 
 def play_human_vs_human():
@@ -347,86 +330,101 @@ def play_vs_stockfish():
         # 7. ОБЯЗАТЕЛЬНО корректно завершаем работу движка
         ai_player.quit()
 
+
 def play_training_game():
-    """Запускает тренировочную игру с подсказками, выбором цвета и отменой хода."""
-    print(f"\n{T('loading_engine', default='Загрузка аналитического движка...')}")
-    game = TrainingGame(ai_skill_level=20) # Используем максимальную силу для лучших подсказок
+    """
+    Запускает тренировочную игру с тремя режимами:
+    1. Игра за белых (черными ходит ИИ).
+    2. Игра за черных (белыми ходит ИИ).
+    3. Игра за обе стороны (песочница).
+    Всегда показываются подсказки от ИИ.
+    """
+    print(f"\n{T('loading_engine')}")
+    # Для подсказок и игры ИИ используем максимальную силу
+    game = TrainingGame(ai_skill_level=20) 
     if not game.analyzer:
         time.sleep(3)
         return
         
-    # --- НОВОЕ: ВЫБОР ЦВЕТА ИГРОКОМ ---
-    player_color = None
-    while player_color not in ['white', 'black', 'both']:
-        prompt = T('training_choose_color', default="За кого играть? (б/белые, ч/черные, о/обе стороны): ")
+    # --- ВЫБОР РЕЖИМА ИГРЫ ---
+    player_control = None # 'white', 'black' или 'both'
+    while player_control not in ['white', 'black', 'both']:
+        prompt = T('training_choose_color')
         choice = input(prompt).strip().lower()
         if choice in ['w', 'white', 'белые', 'б']:
-            player_color = 'white'
+            player_control = 'white'
         elif choice in ['b', 'black', 'черные', 'ч']:
-            player_color = 'black'
+            player_control = 'black'
         elif choice in ['o', 'both', 'обе', 'о']:
-            player_color = 'both' # Специальный режим, где вы играете за обе стороны
+            player_control = 'both'
 
     try:
         while game.status == "ongoing":
             clear_screen()
             
             # Определяем, нужно ли переворачивать доску
-            should_flip = (game.board.turn == 'black' and settings['flip_board'] and player_color != 'white')
+            should_flip = (player_control == 'black' and settings['flip_board'])
             draw_board(game, flip=should_flip)
             
-            # Проверяем конец игры перед показом подсказок
-            if game.status != "ongoing":
-                break
+            if game.status != "ongoing": break
 
-            # --- Показываем лучшие ходы ---
-            print(f"\n{T('best_moves_header', default='--- Лучшие ходы по версии ИИ ---')}")
+            # --- Показываем лучшие ходы (всегда) ---
+            print(f"\n{T('best_moves_header')}")
             top_moves = game.get_top_moves(num_moves=3)
             if top_moves:
                 for i, move_info in enumerate(top_moves):
-                    # Вывод: 1. e2e4    (Оценка: +0.25)
-                    print(f"  {i+1}. {move_info['move']:<8} ({T('evaluation', default='Оценка')}: {move_info['score']})")
+                    print(f"  {i+1}. {move_info['move']:<8} ({T('evaluation')}: {move_info['score']})")
             else:
-                print(T('analysis_unavailable', default='Анализ временно недоступен.'))
+                print(T('analysis_unavailable'))
             print("-" * 35)
-            
-            # --- НОВОЕ: ПОНЯТНЫЙ ЗАПРОС НА ВВОД ---
-            current_player_name = T(game.board.turn + '_player')
-            prompt = T('training_prompt', 
-                       default="\nХод {player}. Введите ход, 'undo' (отмена), 'exit' (выход): ", 
-                       player=current_player_name)
-            
-            move_str = input(prompt).strip().lower()
 
-            if move_str in ['exit', 'quit']:
-                break
-            
-            # --- НОВОЕ: РЕАЛИЗАЦИЯ ОТМЕНЫ ХОДА ---
-            if move_str == 'undo':
-                if game.undo_move():
-                    print(f"\n{T('undo_success', default='Ход отменен.')}")
-                else:
-                    print(f"\n{T('undo_fail', default='Нечего отменять.')}")
-                time.sleep(1.5)
-                continue # Пропускаем остаток цикла и перерисовываем доску
+            # --- ОПРЕДЕЛЯЕМ, ЧЕЙ ХОД: ЧЕЛОВЕКА ИЛИ ИИ ---
+            is_human_turn = (player_control == 'both' or game.board.turn == player_control)
 
-            # --- НОВОЕ: Проверяем, может ли игрок ходить за текущий цвет ---
-            if player_color != 'both' and game.board.turn != player_color:
-                print(f"\n{T('not_your_turn', default='Сейчас не ваш ход!')}")
-                time.sleep(1.5)
-                continue
+            if is_human_turn:
+                # --- Ход Человека ---
+                current_player_name = T(game.board.turn + '_player')
+                prompt = T('training_prompt', player=current_player_name)
+                move_str = input(prompt).strip().lower()
+
+                if move_str in ['exit', 'quit']: break
+                if move_str == 'undo':
+                    game.undo_move()
+                    # Если играли против ИИ, нужно отменить и его ход тоже
+                    if player_control != 'both':
+                        game.undo_move()
+                    continue
+
+                if not game.make_move(move_str):
+                    print(f"\n{T('illegal_move')}"); time.sleep(2)
+            
+            else:
+                # --- Ход ИИ ---
+                print(f"\n{T('ai_thinking')}")
+                fen = game.board.to_fen()
+                # Используем тот же анализатор для получения лучшего хода
+                ai_move = game.analyzer.get_best_move(fen, time_limit=1.0)
                 
-            # Делаем ход
-            if not game.make_move(move_str):
-                print(f"\n{T('illegal_move')}")
-                time.sleep(2)
+                if ai_move:
+                    print(f"{T('ai_makes_move')}: {ai_move}")
+                    game.make_move(ai_move)
+                    time.sleep(1.5)
+                else:
+                    print(f"\n{T('ai_error')}"); break
         
-        # --- Вывод результата игры (без изменений) ---
+        # --- Вывод результата игры ---
         clear_screen()
-        # ... (здесь ваш код вывода результата) ...
-    
+        final_flip = (player_control == 'black' and settings['flip_board'])
+        draw_board(game, flip=final_flip)
+        print(f"\n{T('game_over_title')}")
+        if game.status == "checkmate":
+            winner_color = "black" if game.board.turn == "white" else "white"
+            winner_name_key = winner_color + '_player'
+            print(T('checkmate', winner=T(winner_name_key)))
+        else:
+            print(T(game.status, default=f"Ничья ({game.status})"))
+
     finally:
-        # Корректно завершаем работу движка
         game.shutdown_analyzer()
 
 
