@@ -147,18 +147,21 @@ class ChessBoard:
         Использует deepcopy для безопасной проверки ходов.
         """
         legal_moves = []
-        # Сначала генерируем все ходы, которые фигура может сделать в принципе
+        
+        # 1. Сначала генерируем ВСЕ псевдо-легальные ходы для ВСЕХ наших фигур
         pseudo_legal_moves = self._generate_pseudo_legal_moves()
 
+        # 2. Теперь для каждого такого хода проверяем, не подставляет ли он короля под шах
         for move in pseudo_legal_moves:
-            # Создаем ПОЛНУЮ, ГЛУБОКУЮ КОПИЮ доски для симуляции хода
+            # Создаем полную, глубокую копию доски для симуляции хода
             temp_board = copy.deepcopy(self)
             
             # Делаем ход на временной доске
             temp_board._make_move_on_board(move)
             
-            # Проверяем, не оказался ли НАШ король под шахом ПОСЛЕ хода
-            # `self.turn`, потому что внутри temp_board ход уже сменился, а нам нужен цвет того, кто ходил
+            # Проверяем, не оказался ли НАШ король под шахом ПОСЛЕ хода.
+            # `self.turn` используется, потому что в temp_board ход уже сменился, 
+            # а нам нужен цвет того, кто только что походил.
             if not temp_board.is_in_check(self.turn):
                 legal_moves.append(move)
         
@@ -282,56 +285,48 @@ class ChessBoard:
         :return: True, если ход был успешно выполнен, иначе False.
         :rtype: bool
         """
-        if len(move_str) < 4: return False
-        
-        from_pos_str, to_pos_str = move_str[:2], move_str[2:4]
-        promotion_piece = move_str[4] if len(move_str) == 5 else None
-
-        from_pos = self._parse_pos(from_pos_str)
-        to_pos = self._parse_pos(to_pos_str)
-        
-        if from_pos is None or to_pos is None:
-            # print("Ошибка: Неверный формат хода.") # Убираем print для чистоты тестов
+        if not isinstance(move_str, str) or len(move_str) < 4:
             return False
+            
+        from_pos = self._parse_pos(move_str[:2])
+        to_pos = self._parse_pos(move_str[2:4])
 
-        piece_to_move = self.get_piece_at(from_pos)
-        if self.get_piece_color(piece_to_move) != self.turn:
+        if from_pos is None or to_pos is None:
             return False
 
         move = (from_pos, to_pos)
-        legal_moves = self.get_legal_moves()
-
-        if move not in legal_moves:
-            # print(f"Ошибка: Нелегальный ход '{move_str}'.") # Убираем print для чистоты тестов
+        
+        # Проверяем, легален ли ход
+        if move not in self.get_legal_moves():
             return False
-
+            
+        promotion_piece = move_str[4] if len(move_str) == 5 else None
+        
+        # Вызываем внутренний метод, который сделает всю грязную работу, включая запись в историю
         self._make_move_on_board(move, promotion_piece)
-        self.move_history.append(move_str)
-        return True
+        
+        return True # Возвращаем успех
 
     def _make_move_on_board(self, move, promotion_piece=None):
-        """
-        Внутренний метод для выполнения хода на доске без проверок легальности.
-        Обновляет все состояния, связанные с доской.
-        """
         from_pos, to_pos = move
         from_r, from_c = from_pos
         to_r, to_c = to_pos
         
+        # --- ВОТ ИСПРАВЛЕНИЕ ---
+        # Объявляем переменные здесь, чтобы они были доступны везде
         piece_moved = self.board[from_r][from_c]
         piece_captured = self.board[to_r][to_c]
-        
+
+        # Теперь их можно использовать для создания last_state
         last_state = {
             'move': move,
             'piece_moved': piece_moved,
             'piece_captured': piece_captured,
-            'en_passant_target': self.en_passant_target,
-            'castling_rights': copy.deepcopy(self.castling_rights),
-            'halfmove_clock': self.halfmove_clock,
+            # ...
         }
         self.move_history.append(last_state)
 
-        # Сбрасываем счетчик 50 ходов, если было взятие или ход пешкой
+        # И для проверки сброса счетчика 50 ходов
         if piece_captured != '.' or piece_moved.lower() == 'p':
             self.halfmove_clock = 0
         else:
@@ -455,29 +450,6 @@ class ChessBoard:
         if self.halfmove_clock >= 100:
             return "draw_50_moves"
         return "ongoing"
-
-    def get_position_hash(self):
-        """
-        Создает уникальную строку (хэш) для текущей позиции.
-        Это нужно для отслеживания троекратного повторения.
-        Хэш включает в себя положение фигур, право на ход,
-        права на рокировку и возможность взятия на проходе.
-        """
-        # Преобразуем доску в одну строку
-        board_str = "".join("".join(row) for row in self.board)
-        
-        # Собираем права на рокировку в строку
-        castling_str = ""
-        if self.castling_rights['white']['kingside']: castling_str += 'K'
-        if self.castling_rights['white']['queenside']: castling_str += 'Q'
-        if self.castling_rights['black']['kingside']: castling_str += 'k'
-        if self.castling_rights['black']['queenside']: castling_str += 'q'
-        if not castling_str: castling_str = '-'
-
-        en_passant_str = self._to_algebraic(self.en_passant_target) if self.en_passant_target else '-'
-        
-        # Собираем все в один хэш
-        return f"{board_str} {self.turn[0]} {castling_str} {en_passant_str}"
 
     def has_insufficient_material(self):
         """
@@ -616,3 +588,26 @@ class ChessBoard:
         # --- КОНЕЦ ИСПРАВЛЕНИЯ ---
 
         return f"{board_fen} {turn_fen} {castling_fen} {en_passant_fen} {halfmove_fen} {fullmove_fen}"
+
+    def get_position_hash(self):
+        """
+        Создает уникальную строку (хэш) для текущей позиции.
+        Это нужно для отслеживания троекратного повторения.
+        Хэш включает в себя положение фигур, право на ход,
+        права на рокировку и возможность взятия на проходе.
+        """
+        # Преобразуем доску в одну строку
+        board_str = "".join("".join(row) for row in self.board)
+        
+        # Собираем права на рокировку в строку
+        castling_str = ""
+        if self.castling_rights['white']['kingside']: castling_str += 'K'
+        if self.castling_rights['white']['queenside']: castling_str += 'Q'
+        if self.castling_rights['black']['kingside']: castling_str += 'k'
+        if self.castling_rights['black']['queenside']: castling_str += 'q'
+        if not castling_str: castling_str = '-'
+
+        en_passant_str = self._to_algebraic(self.en_passant_target) if self.en_passant_target else '-'
+        
+        # Собираем все в один хэш
+        return f"{board_str} {self.turn[0]} {castling_str} {en_passant_str}"

@@ -54,37 +54,43 @@ class Game:
 
     def undo_move(self):
         """
-        Отменяет последний сделанный ход.
-        Этот метод должен быть в классе Game, не в TrainingGame.
+        Отменяет последний сделанный ход, используя историю из board.
         """
-        # Проверяем, есть ли что отменять в истории доски
         if not self.board.move_history:
             return False
+            
+        # 1. Получаем информацию о последнем ходе ДО того, как его отменять
+        last_move_info = self.board.move_history[-1] # Это должен быть словарь
+        last_captured_piece = last_move_info.get('piece_captured', '.')
 
-        # --- ОТКАТ ИСТОРИИ ПОВТОРЕНИЙ ---
-        # Сначала уменьшаем счетчик текущей позиции
+        # 2. Откатываем историю повторений
         current_hash = self.board.get_position_hash()
         if self.position_history.get(current_hash, 0) > 0:
             self.position_history[current_hash] -= 1
-        else:
-            # Если счетчика нет, это странно, но лучше обработать
-            self.position_history.pop(current_hash, None)
-        
-        # --- ОТКАТ СЪЕДЕННЫХ ФИГУР ---
-        last_captured_piece_char = self.board.move_history[-1]['piece_captured']
-        if last_captured_piece_char != '.':
-            # Определяем, кто сделал отменяемый ход (противоположный текущему self.board.turn)
-            moving_player_color = 'black' if self.board.turn == 'white' else 'white'
-            if moving_player_color == 'white':
-                if self.captured_by_white and self.captured_by_white[-1] == last_captured_piece_char:
-                    self.captured_by_white.pop()
-            else:
-                if self.captured_by_black and self.captured_by_black[-1] == last_captured_piece_char:
+
+        # 3. Делегируем отмену хода самой доске
+        success = self.board.undo_move()
+        if not success:
+            # Если доска не смогла отменить ход, нужно вернуть хэш обратно
+            self.position_history[current_hash] += 1
+            return False
+
+        # 4. Если ход был отменен, откатываем список съеденных фигур
+        if last_captured_piece != '.':
+            # Определяем, кто сделал отмененный ход
+            undone_move_player = self.board.turn
+            if undone_move_player == 'white':
+                # Значит, ход делали черные. Ищем в списке съеденных черными.
+                if self.captured_by_black and self.captured_by_black[-1] == last_captured_piece:
                     self.captured_by_black.pop()
+            else: # Ход делали белые
+                if self.captured_by_white and self.captured_by_white[-1] == last_captured_piece:
+                    self.captured_by_white.pop()
+
+        # 5. Обновляем статус игры
+        self._check_game_over()
         
-        # --- ОТКАТ САМОЙ ДОСКИ ---
-        # Делегируем это доске, у которой есть вся низкоуровневая информация
-        return self.board.undo_move()
+        return True
 
     def _check_game_over(self):
         """
