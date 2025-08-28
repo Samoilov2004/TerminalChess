@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, TYPE_CHECKING
 from .piece import Piece, WHITE, BLACK
 
 if TYPE_CHECKING:
