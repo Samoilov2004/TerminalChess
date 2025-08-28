@@ -30,12 +30,21 @@ def select_language():
     print("Выберите язык / Select language:")
     print("  1. Русский")
     print("  2. English")
+    print("  3. Français")
+    print("  4. Español")
+    print("  5. 中国语文科")
     while True:
         choice = input(">> ").strip()
         if choice == '1':
             return "ru"
         elif choice == '2':
             return "en"
+        elif choice == '3':
+            return "fr"
+        elif choice == '4':
+            return "es"
+        elif choice == '5':
+            return "zh"
 
 def get_game_settings(localizer: LocalizationManager):
     """Запрашивает у пользователя цвет и сложность."""
