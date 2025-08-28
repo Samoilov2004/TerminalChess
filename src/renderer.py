@@ -36,16 +36,12 @@ class TerminalRenderer:
         self.clear_screen()
         print(self.localizer.get("app_title"))
 
-        # Определяем, нужно ли переворачивать доску
         flip = self.config.get('flip_board', False) and board.color_to_move != WHITE
+        
+        # ... (код отрисовки заголовков) ...
         
         rows = range(8) if not flip else range(7, -1, -1)
         cols = range(8) if not flip else range(7, -1, -1)
-        
-        col_headers = "  a b c d e f g h"
-        if flip:
-            col_headers = "  h g f e d c b a"
-        print(col_headers)
         
         for r in rows:
             row_header = 8 - r
@@ -55,20 +51,19 @@ class TerminalRenderer:
                 piece = board.get_piece_at((r, c))
                 symbol = self._get_piece_symbol(piece)
                 
-                # Логика подсветки
-                is_last_move = (last_move and ((r, c) == last_move[0] or (r, c) == last_move[1]))
+                # --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+                # Проверяем, включена ли подсветка в конфиге
+                is_highlight_enabled = self.config.get('highlighting', True)
+                is_last_move = is_highlight_enabled and last_move and ((r, c) == last_move[0] or (r, c) == last_move[1])
                 
                 if is_last_move:
-                    print(f"\033[44m{symbol}\033[0m ", end="") # Синий фон для подсветки
+                    print(f"\033[44m{symbol}\033[0m ", end="")
                 else:
                     print(f"{symbol} ", end="")
             
             print(f" {row_header}")
+            print("-" * 25)
         
-        print(col_headers)
-        print("-" * 25)
-        
-        # Вывод информации о состоянии игры
         status = board.get_game_status()
         if status == 'checkmate':
             winner_color_key = "black" if board.color_to_move == WHITE else "white"
