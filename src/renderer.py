@@ -32,17 +32,27 @@ class TerminalRenderer:
     def draw_board(self, board: Board, last_move: Optional[tuple] = None):
         """
         Основной метод отрисовки доски и статуса игры.
+        Учитывает стиль доски из настроек.
         """
         self.clear_screen()
         print(self.localizer.get("app_title"))
-
-        flip = self.config.get('flip_board', False) and board.color_to_move != WHITE
         
-        # ... (код отрисовки заголовков) ...
+        # Получаем стиль доски из конфига, по умолчанию 'classic'
+        board_style = self.config.get('board_style', 'classic')
+        
+        flip = self.config.get('flip_board', False) and board.color_to_move != WHITE
         
         rows = range(8) if not flip else range(7, -1, -1)
         cols = range(8) if not flip else range(7, -1, -1)
         
+        col_headers = "  a b c d e f g h"
+        if flip:
+            col_headers = "  h g f e d c b a"
+        print(col_headers)
+
+        if board_style == 'pretty':
+            print("-------------------------")
+
         for r in rows:
             row_header = 8 - r
             print(f"{row_header} ", end="")
@@ -51,8 +61,6 @@ class TerminalRenderer:
                 piece = board.get_piece_at((r, c))
                 symbol = self._get_piece_symbol(piece)
                 
-                # --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
-                # Проверяем, включена ли подсветка в конфиге
                 is_highlight_enabled = self.config.get('highlighting', True)
                 is_last_move = is_highlight_enabled and last_move and ((r, c) == last_move[0] or (r, c) == last_move[1])
                 
@@ -62,21 +70,6 @@ class TerminalRenderer:
                     print(f"{symbol} ", end="")
             
             print(f" {row_header}")
-            print("-" * 25)
-        
-        status = board.get_game_status()
-        if status == 'checkmate':
-            winner_color_key = "black" if board.color_to_move == WHITE else "white"
-            winner_name = self.localizer.get(f"player_{winner_color_key}")
-            print(self.localizer.get("game_over_checkmate", winner=winner_name))
-        elif status == 'stalemate':
-            print(self.localizer.get("game_over_stalemate"))
-        elif status == 'draw':
-            print(self.localizer.get("game_over_draw"))
-        else:
-            player_color_key = "white" if board.color_to_move == WHITE else "black"
-            player_name = self.localizer.get(f"player_{player_color_key}")
-            print(self.localizer.get("turn_prompt", player=player_name))
-            if board.is_in_check(board.color_to_move):
-                print(f"\033[91m{self.localizer.get('check_warning')}\033[0m")
-        print("-" * 25)
+
+            if board_style == 'pretty' and r != (0 if not flip else 7):
+                 print("-------------------------")

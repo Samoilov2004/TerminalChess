@@ -1,0 +1,9 @@
+{
+    "language": "ru",
+    "config": {
+        "highlighting": true,
+        "flip_board": true,
+        "piece_set": "unicode",
+        "board_style": "classic"
+    }
+}

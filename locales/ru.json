@@ -59,5 +59,12 @@
     "unknown_draw": "Результат: Ничья ({status}).",
     "welcome_lang_prompt": "Выберите язык / Select language:",
     "your_move_prompt": "Ваш ход (например, e2e4, или 'q' для выхода): ",
-    "your_move_prompt_hints": "Ваш ход (e2e4, 'undo' - отменить, 'hint' - подсказка, 'q' - выход): "
+    "your_move_prompt_hints": "Ваш ход (e2e4, 'undo' - отменить, 'hint' - подсказка, 'q' - выход): ",
+    "settings_option_pieces": "4. Вид фигур (Текущий: {style})",
+    "settings_option_board_style": "5. Стиль доски (Текущий: {style})",
+    "settings_option_future1": "6. Цветовая схема доски (в разработке)",
+    "settings_option_future2": "7. Анализ партии с LLM (в разработке)",
+    "settings_option_back": "8. Назад в главное меню",
+    "board_style_classic": "Классический",
+    "board_style_pretty": "С разделителями"
 }

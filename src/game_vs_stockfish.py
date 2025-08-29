@@ -54,10 +54,13 @@ class GameVsStockfish:
 
     def run(self):
         try:
-            while self.board.get_game_status() == 'in_progress':
+            game_active = True
+            while self.board.get_game_status() == 'in_progress' and game_active:
                 self.renderer.draw_board(self.board, self.last_move)
+                
                 if self.board.color_to_move == self.player_color:
-                    self._player_turn()
+                    # Метод теперь возвращает False, если игрок хочет выйти
+                    game_active = self._player_turn() 
                 else:
                     self._ai_turn()
         finally:
@@ -66,32 +69,32 @@ class GameVsStockfish:
             self.engine.close()
             print(self.localizer.get("game_finished_engine_stopped"))
 
-    def _player_turn(self):
-        """Обрабатывает ход игрока."""
-        move_made = False
-        while not move_made:
+    def _player_turn(self) -> bool:
+        """Обрабатывает ход игрока. Возвращает False, если игрок решил выйти."""
+        while True:
             try:
                 prompt = self.localizer.get("your_move_prompt")
                 user_input = input(prompt)
 
                 if user_input.lower() == self.localizer.get("exit_command"):
-                    raise KeyboardInterrupt
+                    save_prompt = self.localizer.get("save_and_quit_prompt")
+                    save_choice = input(save_prompt).lower()
+                    if save_choice == self.localizer.get("confirm_yes"):
+                        return False # Сигнализируем о выходе с сохранением
+                    else:
+                        self.board.halfmove_clock = 9999 # Завершаем игру без сохранения
+                        return True # Продолжаем цикл, который тут же завершится
 
+                # ... (остальная логика хода) ...
                 move = self._parse_user_input(user_input)
-
                 if move in self.board.get_legal_moves():
-                    # TODO: Добавить логику превращения пешки для игрока
-                    self.board.make_move(move)
+                    self.board.make_move(move) # TODO: promotion for player
                     self.last_move = move
-                    move_made = True
+                    return True # Ход сделан, продолжаем игру
                 else:
                     print(self.localizer.get("illegal_move"))
             except ValueError as e:
                 print(self.localizer.get("input_error", error=e))
-            except KeyboardInterrupt:
-                print("\n" + self.localizer.get("exit_message"))
-                self.board.halfmove_clock = 9999 
-                move_made = True
 
     def _ai_turn(self):
         """Обрабатывает ход компьютера."""

@@ -331,6 +331,49 @@ class Board:
         # TODO: Добавить проверку на троекратное повторение и недостаток материала
         return 'in_progress'
 
+    def load_from_fen(self, fen: str):
+        """Загружает позицию и состояние игры из FEN-строки."""
+        self.board = [[None for _ in range(8)] for _ in range(8)]
+        self.history = []
+        
+        parts = fen.split(' ')
+        piece_placement, active_color, castling, en_passant, halfmove, fullmove = parts[:6]
+
+        # 1. Расстановка фигур
+        piece_map = {'p':pawn.Pawn,'r':rook.Rook,'n':knight.Knight,'b':bishop.Bishop,'q':queen.Queen,'k':king.King}
+        rows = piece_placement.split('/')
+        for r, row_str in enumerate(rows):
+            c = 0
+            for char in row_str:
+                if char.isdigit():
+                    c += int(char)
+                else:
+                    color = WHITE if char.isupper() else BLACK
+                    piece_class = piece_map[char.lower()]
+                    self.set_piece_at((r, c), piece_class(color))
+                    c += 1
+        
+        # 2. Чей ход
+        self.color_to_move = active_color
+        
+        # 3. Права на рокировку
+        self.castling_rights = CastlingRights(
+            'K' in castling, 'Q' in castling,
+            'k' in castling, 'q' in castling
+        )
+        
+        # 4. Взятие на проходе
+        if en_passant != '-':
+            col = 'abcdefgh'.find(en_passant[0])
+            row = 8 - int(en_passant[1])
+            self.en_passant_target = (row, col)
+        else:
+            self.en_passant_target = None
+            
+        # 5-6. Счетчики
+        self.halfmove_clock = int(halfmove)
+        self.fullmove_number = int(fullmove)
+
     def __str__(self) -> str:
         """Строковое представление доски для отладки."""
         s = "  a b c d e f g h\n"

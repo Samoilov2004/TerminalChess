@@ -38,7 +38,6 @@
     "lang_option_zh": "5. 中文 🇨🇳",
     "piece_style_ascii": "ASCII (P)",
     "piece_style_unicode": "Unicode (♙)",
-
     "player_black": "Black",
     "player_color_error": "Player color must be 'w' or 'b'",
     "player_white": "White",
