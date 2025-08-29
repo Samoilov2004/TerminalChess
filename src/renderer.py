@@ -32,14 +32,13 @@ class TerminalRenderer:
     def draw_board(self, board: Board, last_move: Optional[tuple] = None):
         """
         Основной метод отрисовки доски и статуса игры.
-        Учитывает стиль доски из настроек.
+        Учитывает стиль доски и все возможные состояния игры (мат, пат, ничьи).
         """
         self.clear_screen()
         print(self.localizer.get("app_title"))
         
-        # Получаем стиль доски из конфига, по умолчанию 'classic'
+        # --- Блок отрисовки доски (без изменений) ---
         board_style = self.config.get('board_style', 'classic')
-        
         flip = self.config.get('flip_board', False) and board.color_to_move != WHITE
         
         rows = range(8) if not flip else range(7, -1, -1)
@@ -71,5 +70,46 @@ class TerminalRenderer:
             
             print(f" {row_header}")
 
-            if board_style == 'pretty' and r != (0 if not flip else 7):
-                 print("-------------------------")
+            if board_style == 'pretty':
+                # Рисуем линию после каждого ряда, включая последний
+                print("-------------------------")
+        
+        # Если стиль классический, все равно добавим разделитель перед статусом
+        if board_style == 'classic':
+            print("-" * 25)
+
+        # --- НОВЫЙ БЛОК ОБРАБОТКИ СТАТУСА ИГРЫ ---
+        status = board.get_game_status()
+
+        if status == 'checkmate':
+            # Победитель - тот, кто НЕ должен ходить сейчас
+            winner_color_key = "black" if board.color_to_move == WHITE else "white"
+            winner_name = self.localizer.get(f"player_{winner_color_key}")
+            print(self.localizer.get("game_over_checkmate", winner=winner_name))
+        
+        elif status == 'stalemate':
+            print(self.localizer.get("game_over_stalemate"))
+        
+        elif status == 'draw_repetition':
+            print(self.localizer.get("draw_repetition"))
+        
+        elif status == 'draw_50_moves':
+            print(self.localizer.get("draw_50_moves"))
+        
+        elif status == 'draw_insufficient_material':
+            print(self.localizer.get("draw_insufficient_material"))
+            
+        elif status == 'in_progress':
+            # Если игра продолжается, показываем, чей ход
+            player_color_key = "white" if board.color_to_move == WHITE else "black"
+            player_name = self.localizer.get(f"player_{player_color_key}")
+            print(self.localizer.get("turn_prompt", player=player_name))
+            
+            # И предупреждение о шахе, если он есть
+            if board.is_in_check(board.color_to_move):
+                print(f"\033[91m{self.localizer.get('check_warning')}\033[0m")
+        
+        # Нижний разделитель для красоты
+        print("-" * 25)
+
+        

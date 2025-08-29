@@ -2,6 +2,7 @@ import copy
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
 import random
+from collections import Counter
 
 from pieces import piece, pawn, knight, bishop, rook, queen, king
 
@@ -54,8 +55,9 @@ class Board:
         self.fullmove_number: int = 1
         self.history: List[MoveRecord] = []
         self.is_chess960 = is_chess960
-        # В 960 сохраняем начальные позиции ладей
         self.initial_rook_files: dict = {'w': [], 'b': []}
+        self.position_history = Counter()
+        self._update_position_history()
         
         if is_chess960:
             self._setup_board_960()
@@ -108,6 +110,67 @@ class Board:
         for col, piece_class in placement.items():
             self.board[7][col] = piece_class(WHITE)
             self.board[0][col] = piece_class(BLACK)
+
+    def _get_position_hash(self) -> str:
+        """Создает хэш позиции (часть FEN) для отслеживания повторений."""
+        fen = board_to_fen(self) # Используем существующую функцию
+        position_part = " ".join(fen.split(' ')[:4])
+        return position_part
+
+    def _update_position_history(self):
+        """Обновляет счетчик истории позиций."""
+        pos_hash = self._get_position_hash()
+        self.position_history[pos_hash] += 1
+
+    def _is_insufficient_material(self) -> bool:
+        """Проверяет, достаточно ли на доске материала для мата."""
+        pieces = [p for row in self.board for p in row if p is not None]
+        
+        # Если есть хоть одна пешка, ладья или ферзь - материала достаточно
+        if any(isinstance(p, (pawn.Pawn, rook.Rook, queen.Queen)) for p in pieces):
+            return False
+
+        # Собираем статистику по оставшимся фигурам (кони и слоны)
+        white_pieces = [p for p in pieces if p.color == WHITE and not isinstance(p, king.King)]
+        black_pieces = [p for p in pieces if p.color == BLACK and not isinstance(p, king.King)]
+
+        # Король против короля
+        if not white_pieces and not black_pieces:
+            return True
+
+        # Король и конь против короля
+        if (len(white_pieces) == 1 and isinstance(white_pieces[0], knight.Knight) and not black_pieces) or \
+           (len(black_pieces) == 1 and isinstance(black_pieces[0], knight.Knight) and not white_pieces):
+            return True
+
+        # Король и слон против короля
+        if (len(white_pieces) == 1 and isinstance(white_pieces[0], bishop.Bishop) and not black_pieces) or \
+           (len(black_pieces) == 1 and isinstance(black_pieces[0], bishop.Bishop) and not white_pieces):
+            return True
+            
+        # Король и слоны против короля (все слоны на полях одного цвета)
+        if (len(white_pieces) > 0 and all(isinstance(p, bishop.Bishop) for p in white_pieces) and not black_pieces) or \
+           (len(black_pieces) > 0 and all(isinstance(p, bishop.Bishop) for p in black_pieces) and not white_pieces):
+            
+            all_bishops = white_pieces + black_pieces
+            first_bishop_pos = self.find_piece_pos(all_bishops[0])
+            if first_bishop_pos:
+                is_light_square = (first_bishop_pos[0] + first_bishop_pos[1]) % 2 == 1
+                for b in all_bishops[1:]:
+                    pos = self.find_piece_pos(b)
+                    if pos and (pos[0] + pos[1]) % 2 == 1 != is_light_square:
+                        return False # Найден разнопольный слон
+                return True # Все слоны однопольные
+
+        return False # Во всех остальных случаях материала достаточно
+
+    def find_piece_pos(self, piece_to_find: piece.Piece) -> Optional[Tuple[int, int]]:
+        """Вспомогательный метод для поиска позиции конкретного объекта фигуры."""
+        for r_idx, row in enumerate(self.board):
+            for c_idx, p in enumerate(row):
+                if p is piece_to_find:
+                    return (r_idx, c_idx)
+        return None
 
     def get_piece_at(self, pos: Tuple[int, int]) -> Optional[piece.Piece]:
         row, col = pos
@@ -332,6 +395,8 @@ class Board:
             self.fullmove_number += 1
             
         self.color_to_move = BLACK if self.color_to_move == WHITE else WHITE
+        self._update_position_history()
+
 
     def undo_move(self):
         """Отменяет последний сделанный ход."""
@@ -346,6 +411,12 @@ class Board:
         
         self.color_to_move = BLACK if self.color_to_move == WHITE else WHITE
         if self.color_to_move == BLACK: self.fullmove_number -= 1
+
+        current_hash = self._get_position_hash()
+        if self.position_history[current_hash] > 0:
+            self.position_history[current_hash] -= 1
+        else: # На случай, если история пуста, но undo вызван
+            del self.position_history[current_hash]
 
         # Перемещение фигур обратно
         moved_piece = self.get_piece_at(end_pos)
@@ -389,10 +460,22 @@ class Board:
 
     def get_game_status(self) -> str:
         """Определяет текущий статус игры."""
+        # Проверка на троекратное повторение
+        if self.position_history[self._get_position_hash()] >= 3:
+            return 'draw_repetition'
+
+        # Проверка на правило 50 ходов
+        if self.halfmove_clock >= 100:
+            return 'draw_50_moves'
+
+        # Проверка на недостаток материала
+        if self._is_insufficient_material():
+            return 'draw_insufficient_material'
+        
+        # Проверка на мат или пат
         if not self.get_legal_moves():
             return 'checkmate' if self.is_in_check(self.color_to_move) else 'stalemate'
-        if self.halfmove_clock >= 100: return 'draw'
-        # TODO: Добавить проверку на троекратное повторение и недостаток материала
+        
         return 'in_progress'
 
     def load_from_fen(self, fen: str):
