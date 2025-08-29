@@ -10,7 +10,7 @@ from game_vs_stockfish import GameVsStockfish, WHITE, BLACK, board_to_fen
 from game_with_hints import GameWithHints
 from Board import Board
 
-# Константы для путей
+# --- Константы и вспомогательные функции для сохранения ---
 USER_DATA_DIR = "user_data"
 SETTINGS_FILE = os.path.join(USER_DATA_DIR, "settings.json")
 SAVED_GAME_FILE = os.path.join(USER_DATA_DIR, "saved_game.json")
@@ -21,9 +21,8 @@ def ensure_user_data_dir():
 
 def save_config(config: dict, lang: str):
     ensure_user_data_dir()
-    data = {"language": lang, "config": config}
     with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=4)
+        json.dump({"language": lang, "config": config}, f, indent=4)
 
 def load_config() -> tuple:
     try:
@@ -38,30 +37,46 @@ def load_config() -> tuple:
         return default_config, None
 
 def get_default_config() -> tuple:
-    config = {
-        'highlighting': True, 'flip_board': True,
-        'piece_set': 'unicode', 'board_style': 'classic'
-    }
-    lang = "ru"
-    return config, lang
+    return {'highlighting': True, 'flip_board': True, 'piece_set': 'unicode', 'board_style': 'classic'}, "ru"
 
 def save_game_state(game):
-    """Сохраняет состояние текущей игры в JSON файл."""
-    ensure_user_data_dir()
-    # Собираем все необходимые данные для воссоздания игры
+    """Сохраняет состояние игры в файл."""
     state = {
         "game_type": game.__class__.__name__,
         "player_color": game.player_color,
         "skill_level": game.engine.skill_level if hasattr(game.engine, 'skill_level') else 5,
         "lang": game.localizer.lang,
-        "fen": board_to_fen(game.board) # Самое важное - состояние доски
+        "fen": board_to_fen(game.board)
     }
     with open(SAVED_GAME_FILE, 'w', encoding='utf-8') as f:
         json.dump(state, f, indent=4)
     print(game.localizer.get("game_saved_message"))
 
+def start_game_instance(game_instance):
+    """Принимает созданный экземпляр игры и запускает его основной цикл."""
+    game_active = True
+    try:
+        while game_instance.board.get_game_status() == 'in_progress' and game_active:
+            game_instance.renderer.draw_board(game_instance.board, game_instance.last_move)
+            if game_instance.board.color_to_move == game_instance.player_color:
+                game_active = game_instance._player_turn()
+            else:
+                game_instance._ai_turn()
+        
+        # Если игра завершилась, а не была прервана для сохранения
+        if game_active and os.path.exists(SAVED_GAME_FILE):
+            os.remove(SAVED_GAME_FILE)
+    finally:
+        if not game_active: # Если игрок решил выйти и сохранить
+            save_game_state(game_instance)
+        
+        game_instance.engine.close()
+        # Показываем финальную доску
+        game_instance.renderer.draw_board(game_instance.board)
+        input(game_instance.localizer.get("press_enter_to_continue"))
+
 def continue_game(config: dict, localizer: LocalizationManager):
-    """Загружает сохраненную игру и передает управление в start_game_instance."""
+    """Загружает и продолжает сохраненную игру."""
     if not os.path.exists(SAVED_GAME_FILE):
         print(localizer.get("no_saved_game"))
         input(localizer.get("press_enter_to_continue"))
@@ -70,74 +85,26 @@ def continue_game(config: dict, localizer: LocalizationManager):
     try:
         with open(SAVED_GAME_FILE, 'r', encoding='utf-8') as f:
             state = json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError):
-        if os.path.exists(SAVED_GAME_FILE):
-            os.remove(SAVED_GAME_FILE) # Удаляем битый файл
+    except (json.JSONDecodeError, FileNotFoundError): # На случай битого файла
+        os.remove(SAVED_GAME_FILE)
         return
 
-    # Определяем, какой класс игры нужно создать (обычный или с подсказками)
     game_class = GameVsStockfish if state.get('game_type') == 'GameVsStockfish' else GameWithHints
-    
-    # Создаем экземпляр игры с сохраненными параметрами
     game = game_class(
-        player_color=state['player_color'],
-        skill_level=state['skill_level'],
-        lang=state['lang']
+        player_color=state['player_color'], skill_level=state['skill_level'], lang=state['lang']
     )
-    # Применяем текущие настройки отображения из главного меню
     game.render_config = config
-    # Восстанавливаем позицию на доске из FEN-строки
     game.board.load_from_fen(state['fen'])
-    
-    # Запускаем игровой цикл для этого экземпляра
-    start_game_instance(game, localizer)
-
-def start_game_instance(game_instance, localizer: LocalizationManager):
-    game_active = True
-    try:
-        while game_instance.board.get_game_status() == 'in_progress' and game_active:
-            game_instance.renderer.draw_board(game_instance.board, game_instance.last_move)
-            if game_instance.board.color_to_move == game_instance.player_color:
-                game_active = game_instance._player_turn() # Correctly calls the overridden method.
-            else:
-                game_instance._ai_turn()
-        
-        # Если вышли из цикла по причине конца игры (мат, пат, ничья), удаляем сохранение
-        if game_active and os.path.exists(SAVED_GAME_FILE):
-            os.remove(SAVED_GAME_FILE)
-
-    except Exception:
-        # В случае любой ошибки, корректно закрываем движок
-        game_instance.engine.close()
-        raise # и снова выбрасываем ошибку, чтобы увидеть ее в консоли
-
-    finally:
-        # Этот блок выполнится всегда
-        if not game_active: # Если игрок решил выйти (game_active стало False)
-            save_game_state(game_instance)
-        
-        # Закрываем движок в любом случае
-        game_instance.engine.close()
-        # Показываем финальную доску
-        game_instance.renderer.draw_board(game_instance.board)
-        input(localizer.get("press_enter_to_continue"))
+    start_game_instance(game)
 
 def start_new_game(game_class, localizer: LocalizationManager, config: dict):
-    """
-    Запрашивает настройки для новой игры, создает экземпляр и запускает его.
-    """
+    """Создает новую игру и запускает ее."""
     player_color, skill_level = get_game_settings(localizer)
     game = game_class(
-        player_color=player_color,
-        skill_level=skill_level,
-        lang=localizer.lang
+        player_color=player_color, skill_level=skill_level, lang=localizer.lang
     )
-    # Применяем текущие настройки отображения из главного меню
     game.render_config = config
-    
-    # Запускаем игровой цикл для нового экземпляра
-    start_game_instance(game, localizer)
-
+    start_game_instance(game)
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -184,8 +151,6 @@ def get_game_settings(localizer: LocalizationManager):
             
     return player_color, skill
 
-
-# --- ВОССТАНОВЛЕННАЯ ФУНКЦИЯ НАСТРОЕК ---
 def show_settings(localizer: LocalizationManager, config: dict) -> tuple:
     """Интерактивное меню настроек. Возвращает обновленные (localizer, config)."""
     while True:
@@ -237,16 +202,17 @@ def show_settings(localizer: LocalizationManager, config: dict) -> tuple:
             input()
 
     return localizer, config
-# --- КОНЕЦ ВОССТАНОВЛЕННОЙ ФУНКЦИИ ---
-
 
 def main_menu(localizer: LocalizationManager, config: dict):
     """Главный цикл меню."""
     while True:
         clear_screen()
         print(f"--- {localizer.get('main_menu_title')} ---")
+        
+        # Динамически показываем опцию "Продолжить"
         if os.path.exists(SAVED_GAME_FILE):
              print(localizer.get('menu_option_continue'))
+        
         print(localizer.get('menu_option_standard'))
         print(localizer.get('menu_option_hints'))
         print(localizer.get('menu_option_settings'))
@@ -264,12 +230,13 @@ def main_menu(localizer: LocalizationManager, config: dict):
             localizer, config = show_settings(localizer, config)
             save_config(config, localizer.lang)
         elif choice == '4':
-            break
+            break # Выход из программы
         else:
             print(localizer.get("invalid_menu_choice"))
             input()
 
 if __name__ == "__main__":
+    # --- Основной блок запуска ---
     ensure_user_data_dir()
     config, lang_code = load_config()
 

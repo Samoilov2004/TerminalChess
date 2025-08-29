@@ -66,5 +66,11 @@
     "settings_option_future2": "7. Анализ партии с LLM (в разработке)",
     "settings_option_back": "8. Назад в главное меню",
     "board_style_classic": "Классический",
-    "board_style_pretty": "С разделителями"
+    "board_style_pretty": "С разделителями",
+    "menu_option_continue": "0. Продолжить игру",
+    "save_and_quit_prompt": "Сохранить игру перед выходом? (y/n): ",
+    "game_saved_message": "Игра сохранена.",
+    "no_saved_game": "Нет сохраненной игры для продолжения.",
+    "confirm_yes": "y",
+    "confirm_no": "n"
 }
