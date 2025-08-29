@@ -1,6 +1,7 @@
 import copy
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
+import random
 
 from pieces import piece, pawn, knight, bishop, rook, queen, king
 
@@ -44,7 +45,7 @@ class Board:
     Отвечает за состояние доски, генерацию ходов и их выполнение.
     Координаты: (ряд, колонка), где (0, 0) - это a8, (7, 7) - это h1.
     """
-    def __init__(self):
+    def __init__(self, is_chess960: bool = False):
         self.board: List[List[Optional[piece.Piece]]] = [[None for _ in range(8)] for _ in range(8)]
         self.color_to_move: str = WHITE
         self.castling_rights: CastlingRights = CastlingRights(True, True, True, True)
@@ -52,19 +53,61 @@ class Board:
         self.halfmove_clock: int = 0
         self.fullmove_number: int = 1
         self.history: List[MoveRecord] = []
-        self._setup_board()
-
+        self.is_chess960 = is_chess960
+        # В 960 сохраняем начальные позиции ладей
+        self.initial_rook_files: dict = {'w': [], 'b': []}
+        
+        if is_chess960:
+            self._setup_board_960()
+        else:
+            self._setup_board()
+    
     def _setup_board(self):
-        """Расставляет фигуры в начальную позицию."""
-        pieces_map = {
-            0: rook.Rook, 1: knight.Knight, 2: bishop.Bishop, 3: queen.Queen,
-            4: king.King, 5: bishop.Bishop, 6: knight.Knight, 7: rook.Rook
-        }
+        pieces_map = {0: rook.Rook, 1: knight.Knight, 2: bishop.Bishop, 3: queen.Queen, 4: king.King, 5: bishop.Bishop, 6: knight.Knight, 7: rook.Rook}
         for i in range(8):
-            self.board[0][i] = pieces_map[i](BLACK)
+            self.board[0][i] = pieces_map[i](BLACK); self.board[1][i] = pawn.Pawn(BLACK)
+            self.board[6][i] = pawn.Pawn(WHITE); self.board[7][i] = pieces_map[i](WHITE)
+
+    def _setup_board_960(self):
+        """Расставляет фигуры для Шахмат-960 с исправленной логикой."""
+        for i in range(8):
             self.board[1][i] = pawn.Pawn(BLACK)
             self.board[6][i] = pawn.Pawn(WHITE)
-            self.board[7][i] = pieces_map[i](WHITE)
+
+        dark_squares = [0, 2, 4, 6]
+        light_squares = [1, 3, 5, 7]
+        random.shuffle(dark_squares)
+        random.shuffle(light_squares)
+        
+        b1_pos, b2_pos = dark_squares.pop(), light_squares.pop()
+        
+        remaining_squares = dark_squares + light_squares
+        random.shuffle(remaining_squares)
+        n1_pos, n2_pos = remaining_squares.pop(), remaining_squares.pop()
+        
+        # --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+        # Строка `remaining_squares.append(n2_pos)` была удалена.
+        # Теперь в `remaining_squares` 4 элемента.
+        
+        random.shuffle(remaining_squares)
+        q_pos = remaining_squares.pop()
+        
+        # Теперь в `remaining_squares` 3 элемента, как и должно быть.
+        r1_pos, k_pos, r2_pos = sorted(remaining_squares)
+
+        placement = {
+            b1_pos: bishop.Bishop, b2_pos: bishop.Bishop,
+            n1_pos: knight.Knight, n2_pos: knight.Knight,
+            q_pos: queen.Queen,
+            r1_pos: rook.Rook, k_pos: king.King, r2_pos: rook.Rook
+        }
+        
+        self.initial_rook_files['w'] = [r1_pos, r2_pos]
+        self.initial_rook_files['b'] = [r1_pos, r2_pos]
+
+        for col, piece_class in placement.items():
+            self.board[7][col] = piece_class(WHITE)
+            self.board[0][col] = piece_class(BLACK)
 
     def get_piece_at(self, pos: Tuple[int, int]) -> Optional[piece.Piece]:
         row, col = pos
@@ -166,10 +209,29 @@ class Board:
         return moves
 
     def _generate_castling_moves(self) -> List[Tuple[Tuple[int, int], Tuple[int, int]]]:
-        """Генерирует ходы рокировки, если они возможны."""
+        """Генерирует ходы рокировки. Теперь поддерживает классику и 960."""
         moves = []
         if self.is_in_check(self.color_to_move): return []
 
+        king_pos = self.find_king(self.color_to_move)
+        if not king_pos: return []
+        
+        king_row, king_col = king_pos
+        opponent_color = BLACK if self.color_to_move == WHITE else WHITE
+
+        # --- Целевые поля для короля и ладьи ПОСЛЕ рокировки (всегда одни и те же) ---
+        q_side_king_dest_col, q_side_rook_dest_col = 2, 3  # c-file, d-file
+        k_side_king_dest_col, k_side_rook_dest_col = 6, 5  # g-file, f-file
+
+        # --- Начальные поля ладей ---
+        # В 960 они случайные, в классике - фиксированные
+        if self.is_chess960:
+            rook_files = self.initial_rook_files[self.color_to_move]
+            q_side_rook_col = min(rook_files) if rook_files else -1
+            k_side_rook_col = max(rook_files) if rook_files else -1
+        else:
+            q_side_rook_col, k_side_rook_col = 0, 7
+        
         opponent_color = BLACK if self.color_to_move == WHITE else WHITE
         if self.color_to_move == WHITE:
             row = 7
@@ -199,7 +261,9 @@ class Board:
                not self.is_attacked_by((row, 3), opponent_color) and \
                not self.is_attacked_by((row, 2), opponent_color):
                 moves.append(((row, 4), (row, 2)))
+
         return moves
+
 
     def make_move(self, move: Tuple[Tuple[int, int], Tuple[int, int]], promotion_piece_class=None):
         """Выполняет ход, обновляет все состояния и сохраняет историю."""

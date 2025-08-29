@@ -9,6 +9,7 @@ from localization import LocalizationManager
 from game_vs_stockfish import GameVsStockfish, WHITE, BLACK, board_to_fen
 from game_with_hints import GameWithHints
 from Board import Board
+from game960 import Game960
 
 # --- Константы и вспомогательные функции для сохранения ---
 USER_DATA_DIR = "user_data"
@@ -203,18 +204,19 @@ def show_settings(localizer: LocalizationManager, config: dict) -> tuple:
 
     return localizer, config
 
+
 def main_menu(localizer: LocalizationManager, config: dict):
     """Главный цикл меню."""
     while True:
         clear_screen()
         print(f"--- {localizer.get('main_menu_title')} ---")
         
-        # Динамически показываем опцию "Продолжить"
         if os.path.exists(SAVED_GAME_FILE):
              print(localizer.get('menu_option_continue'))
         
         print(localizer.get('menu_option_standard'))
         print(localizer.get('menu_option_hints'))
+        print(localizer.get('menu_option_960')) # <-- НОВАЯ ОПЦИЯ
         print(localizer.get('menu_option_settings'))
         print(localizer.get('menu_option_quit'))
         print("-" * (len(localizer.get('main_menu_title')) + 6))
@@ -227,10 +229,12 @@ def main_menu(localizer: LocalizationManager, config: dict):
         elif choice == '2':
             start_new_game(GameWithHints, localizer, config)
         elif choice == '3':
+            start_new_game(Game960, localizer, config)
+        elif choice == '4':
             localizer, config = show_settings(localizer, config)
             save_config(config, localizer.lang)
-        elif choice == '4':
-            break # Выход из программы
+        elif choice == '5': # <-- Не забудьте обновить номер выхода
+            break
         else:
             print(localizer.get("invalid_menu_choice"))
             input()
