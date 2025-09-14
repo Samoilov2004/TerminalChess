@@ -136,7 +136,7 @@ def get_game_settings(localizer: LocalizationManager):
             player_color = BLACK if choice in ['b', 'ч', 'n', '黑'] else WHITE
             break
         else:
-            print(localizer.get("invalid_menu_choice"))
+            print(localizer.get("invalid_color_choice"))
 
     # Выбор сложности
     while True:
@@ -146,7 +146,7 @@ def get_game_settings(localizer: LocalizationManager):
             if 0 <= skill <= 20: 
                 break
             else:
-                print(localizer.get("invalid_menu_choice"))
+                print(localizer.get("invalid_skill_level_choice"))
         except ValueError:
             print(localizer.get("invalid_menu_choice"))
             
@@ -216,7 +216,7 @@ def main_menu(localizer: LocalizationManager, config: dict):
         
         print(localizer.get('menu_option_standard'))
         print(localizer.get('menu_option_hints'))
-        print(localizer.get('menu_option_960')) # <-- НОВАЯ ОПЦИЯ
+        print(localizer.get('menu_option_960'))
         print(localizer.get('menu_option_settings'))
         print(localizer.get('menu_option_quit'))
         print("-" * (len(localizer.get('main_menu_title')) + 6))
@@ -233,7 +233,7 @@ def main_menu(localizer: LocalizationManager, config: dict):
         elif choice == '4':
             localizer, config = show_settings(localizer, config)
             save_config(config, localizer.lang)
-        elif choice == '5': # <-- Не забудьте обновить номер выхода
+        elif choice == '5':
             break
         else:
             print(localizer.get("invalid_menu_choice"))

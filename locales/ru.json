@@ -30,6 +30,8 @@
     "input_error": "Ошибка ввода: {error}. Формат: 'e2e4'.",
     "invalid_coordinates": "Некорректные координаты.",
     "invalid_menu_choice": "Неверный выбор. Пожалуйста, введите число от 1 до 4.",
+    "invalid_skill_level_choice": "Неверный выбор. Пожалуйста, введите число от 1 до 20.",
+    "invalid_color_choice": "Некорректный ввод. Пожалуйста введите цвет.",
     "invalid_move_length": "Некорректная длина хода.",
     "invalid_settings_choice": "Неверный выбор. Пожалуйста, введите число.",
     "lang_option_en": "2. English 🇬🇧/🇺🇸",
