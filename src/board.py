@@ -6,8 +6,79 @@ from collections import Counter
 
 from pieces import piece, pawn, knight, bishop, rook, queen, king
 
-# Удобные константы
 WHITE, BLACK = 'w', 'b'
+
+def board_to_fen(board: 'Board') -> str:
+    """
+    Конвертирует текущее состояние доски в строку FEN.
+    
+    FEN состоит из 6 частей, разделенных пробелами:
+    1. Расположение фигур на доске.
+    2. Активный цвет ('w' или 'b').
+    3. Возможности рокировки.
+    4. Возможное поле для взятия на проходе.
+    5. Счетчик полуходов для правила 50 ходов.
+    6. Номер полного хода.
+    """
+    
+    # --- 1. Расположение фигур ---
+    fen_ranks = []
+    for r in range(8):
+        empty_squares = 0
+        rank_str = ""
+        for c in range(8):
+            p = board.get_piece_at((r, c))
+            if p is None:
+                empty_squares += 1
+            else:
+                if empty_squares > 0:
+                    rank_str += str(empty_squares)
+                    empty_squares = 0
+                
+                # Символ фигуры зависит от цвета
+                symbol = p.symbol
+                if p.color == BLACK:
+                    symbol = symbol.lower()
+                rank_str += symbol
+        
+        # Добавляем счетчик пустых клеток в конце ряда, если они есть
+        if empty_squares > 0:
+            rank_str += str(empty_squares)
+            
+        fen_ranks.append(rank_str)
+    
+    piece_placement = "/".join(fen_ranks)
+
+    # --- 2. Активный цвет ---
+    active_color = board.color_to_move
+
+    # --- 3. Возможности рокировки ---
+    # __repr__ класса CastlingRights уже возвращает нужный формат (KQkq или -)
+    castling_availability = str(board.castling_rights)
+
+    # --- 4. Взятие на проходе ---
+    en_passant_target_str = "-"
+    if board.en_passant_target:
+        row, col = board.en_passant_target
+        # Преобразуем координаты (ряд, колонка) в алгебраическую нотацию (e3, f6 и т.д.)
+        col_char = 'abcdefgh'[col]
+        row_char = str(8 - row)
+        en_passant_target_str = col_char + row_char
+
+    # --- 5. Счетчик полуходов ---
+    halfmove_clock = str(board.halfmove_clock)
+
+    # --- 6. Номер полного хода ---
+    fullmove_number = str(board.fullmove_number)
+
+    return " ".join([
+        piece_placement,
+        active_color,
+        castling_availability,
+        en_passant_target_str,
+        halfmove_clock,
+        fullmove_number
+    ])
 
 
 @dataclass
