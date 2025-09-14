@@ -1,13 +1,14 @@
 {
     "app_title": "--- PyChess в Терминале ---",
-    "author_credits": "Создано с ❤️  [Ваше Имя/Никнейм]",
+    "author_credits": "Создано с ❤️ Самойлов Михаил",
     "ai_thinking": "ИИ думает...",
     "back_to_menu": "\nНажмите Enter, чтобы вернуться в меню...",
     "main_menu_title": "Главное Меню",
     "menu_option_standard": "1. Играть со Stockfish (Стандартная)",
     "menu_option_hints": "2. Играть со Stockfish (с Подсказками)",
-    "menu_option_settings": "3. Настройки",
-    "menu_option_quit": "4. Выход",
+    "menu_option_960": "3. Шахматы Фишера/960",
+    "menu_option_settings": "4. Настройки",
+    "menu_option_quit": "5. Выход",
     "check_warning": "Внимание: ШАХ!",
     "choose_color_prompt": "За какой цвет хотите играть? (w/b - белые/черные): ",
     "choose_skill_level": "Выберите уровень сложности Stockfish (0-20): ",
@@ -72,5 +73,6 @@
     "game_saved_message": "Игра сохранена.",
     "no_saved_game": "Нет сохраненной игры для продолжения.",
     "confirm_yes": "y",
-    "confirm_no": "n"
+    "confirm_no": "n",
+    "chess960_rules_link":"https://en.wikipedia.org/wiki/Chess960"
 }
