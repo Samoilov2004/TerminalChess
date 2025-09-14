@@ -1,7 +1,7 @@
 import chess
 # Наследуемся от игры с подсказками, т.к. там уже есть undo/hint
 from game_with_hints import GameWithHints
-from Board import Board # Нам нужен наш Board, чтобы создать его с флагом
+from Board import Board
 
 class Game960(GameWithHints):
     """
@@ -12,12 +12,12 @@ class Game960(GameWithHints):
         # Вызываем конструктор родителя, НО не даем ему создать доску
         super().__init__(player_color, skill_level, lang)
         
-        # Создаем НАШУ специальную доску для 960
+        # Создаем специальную доску для 960
         self.board = Board(is_chess960=True)
         
         # Выводим полезную информацию для игрока
         print("\n" + "="*40)
-        print("🎲 Шахматы-960 (Фишера) 🎲")
+        print(self.localizer.get("chess960_cute_name"))
         print(self.localizer.get("chess960_rules_link"))
         print("="*40)
         input(self.localizer.get("press_enter_to_continue"))

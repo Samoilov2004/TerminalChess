@@ -76,5 +76,6 @@
     "no_saved_game": "Нет сохраненной игры для продолжения.",
     "confirm_yes": "y",
     "confirm_no": "n",
-    "chess960_rules_link":"https://en.wikipedia.org/wiki/Chess960"
+    "chess960_rules_link":"https://en.wikipedia.org/wiki/Chess960",
+    "chess960_cute_name":"🎲 Шахматы-960 (Фишера) 🎲"
 }
